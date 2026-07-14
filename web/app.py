@@ -71,7 +71,22 @@ CONFIG_JSON_FILE = (
     BASE_DIR.parent / "config.json"
 )
 
+# =========================
+# LOGIN DISCORD
+# =========================
 
+@app.route("/login")
+def login():
+
+    discord_url = (
+        "https://discord.com/oauth2/authorize"
+        f"?client_id={DISCORD_CLIENT_ID}"
+        "&response_type=code"
+        f"&redirect_uri={DISCORD_REDIRECT}"
+        "&scope=identify%20guilds"
+    )
+
+    return redirect(discord_url)
 
 # =========================
 # CALLBACK DISCORD
