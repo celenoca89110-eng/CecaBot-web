@@ -74,25 +74,8 @@ CONFIG_JSON_FILE = (
 
 
 # =========================
-# LOGIN DISCORD
+# CALLBACK DISCORD
 # =========================
-
-
-@app.route("/login")
-def login():
-
-    url = (
-        "https://discord.com/oauth2/authorize"
-        f"?client_id={DISCORD_CLIENT_ID}"
-        "&response_type=code"
-        f"&redirect_uri={DISCORD_REDIRECT}"
-        "&scope=identify%20guilds"
-    )
-
-
-    return redirect(url)
-
-
 
 @app.route("/callback")
 def callback():
@@ -101,7 +84,8 @@ def callback():
 
 
     if not code:
-        return "Code Discord absent",400
+        return "Code Discord absent", 400
+
 
 
     token_request = requests.post(
@@ -110,20 +94,16 @@ def callback():
 
         data={
 
-            "client_id":
-            DISCORD_CLIENT_ID,
+            "client_id": DISCORD_CLIENT_ID,
 
-            "client_secret":
-            DISCORD_CLIENT_SECRET,
+            "client_secret": DISCORD_CLIENT_SECRET,
 
-            "grant_type":
-            "authorization_code",
+            "grant_type": "authorization_code",
 
-            "code":
-            code,
+            "code": code,
 
-            "redirect_uri":
-            DISCORD_REDIRECT
+            "redirect_uri": DISCORD_REDIRECT
+
         },
 
         headers={
@@ -136,16 +116,20 @@ def callback():
     )
 
 
+
     token = token_request.json()
+
 
 
     if "access_token" not in token:
 
-        return "Erreur OAuth Discord",400
+        print(token)
+
+        return "Erreur OAuth Discord", 400
 
 
 
-    headers={
+    headers = {
 
         "Authorization":
         f"Bearer {token['access_token']}"
@@ -153,6 +137,8 @@ def callback():
     }
 
 
+
+    # Récupération utilisateur Discord
 
     user = requests.get(
 
@@ -164,6 +150,8 @@ def callback():
 
 
 
+    # Récupération serveurs Discord
+
     guilds = requests.get(
 
         "https://discord.com/api/users/@me/guilds",
@@ -174,9 +162,8 @@ def callback():
 
 
 
-    discord_id = int(
-        user["id"]
-    )
+    discord_id = int(user["id"])
+
 
 
     role = get_user_role(
@@ -187,9 +174,7 @@ def callback():
 
     session["user"] = {
 
-        "id":
-        discord_id,
-
+        "id": discord_id,
 
         "username":
         user.get(
@@ -197,23 +182,22 @@ def callback():
             user["username"]
         ),
 
-
         "avatar":
         user.get("avatar"),
 
-
         "role":
-        role,
-
-
-        "guilds":
-        guilds
+        role
 
     }
 
 
+    # Sauvegarde des serveurs
 
-    return redirect("/")
+    session["guilds"] = guilds
+
+
+
+    return redirect("/servers")
 
 
 
@@ -303,6 +287,29 @@ def count_panels(panels):
 
     return total
 
+
+
+# ======================
+# SERVEURS DISCORD
+# ======================
+
+@app.route("/servers")
+def servers():
+
+    user = session.get("user")
+
+    if not user:
+        return redirect("/login")
+
+
+    guilds = session.get("guilds", [])
+
+
+    return render_template(
+        "servers.html",
+        user=user,
+        guilds=guilds
+    )
 
 
 
