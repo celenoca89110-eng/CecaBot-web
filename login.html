@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>TicketMP - Connexion</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+
+    margin:0;
+    height:100vh;
+
+    font-family:Inter, Arial, sans-serif;
+
+    background:
+    radial-gradient(circle at top,#5865F2 0%,transparent 30%),
+    linear-gradient(135deg,#0b0d12,#151922);
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    color:white;
+
+}
+
+
+
+.container {
+
+    width:100%;
+    max-width:420px;
+
+    padding:20px;
+
+}
+
+
+
+.card {
+
+    background:rgba(25,28,36,0.95);
+
+    border:1px solid rgba(255,255,255,0.08);
+
+    border-radius:20px;
+
+    padding:40px 35px;
+
+    text-align:center;
+
+    box-shadow:
+    0 20px 50px rgba(0,0,0,.4);
+
+    animation:show .5s ease;
+
+}
+
+
+
+@keyframes show {
+
+from {
+    opacity:0;
+    transform:translateY(20px);
+}
+
+to {
+    opacity:1;
+    transform:none;
+}
+
+}
+
+
+
+.logo {
+
+    font-size:55px;
+
+}
+
+
+
+h1 {
+
+    margin:10px 0;
+
+    font-size:28px;
+
+}
+
+
+
+.subtitle {
+
+    color:#b5bac1;
+
+    font-size:14px;
+
+    line-height:1.5;
+
+}
+
+
+
+.discord-btn {
+
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    gap:10px;
+
+
+    margin-top:30px;
+
+
+    background:#5865F2;
+
+    color:white;
+
+
+    text-decoration:none;
+
+
+    padding:15px;
+
+
+    border-radius:12px;
+
+
+    font-weight:700;
+
+
+    transition:.2s;
+
+
+}
+
+
+
+.discord-btn:hover {
+
+    background:#4752c4;
+
+    transform:translateY(-2px);
+
+}
+
+
+
+.info {
+
+    margin-top:25px;
+
+    padding:15px;
+
+    background:#11141a;
+
+    border-radius:12px;
+
+    font-size:13px;
+
+    color:#b5bac1;
+
+}
+
+
+
+</style>
+
+
+</head>
+
+
+
+<body>
+
+
+<div class="container">
+
+
+<div class="card">
+
+
+<div class="logo">
+🎫
+</div>
+
+
+<h1>
+TicketMP Dashboard
+</h1>
+
+
+<p class="subtitle">
+
+Connecte ton compte Discord pour gérer tes tickets,
+tes panels et la configuration du bot.
+
+</p>
+
+
+
+<a class="discord-btn" href="/login">
+
+    🔵 Se connecter avec Discord
+
+</a>
+
+
+
+<div class="info">
+
+🔒 Connexion sécurisée OAuth2 Discord<br><br>
+
+Aucun mot de passe Discord n'est demandé.
+
+</div>
+
+
+
+</div>
+
+
+</div>
+
+
+</body>
+
+
+</html>
