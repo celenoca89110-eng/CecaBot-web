@@ -15,7 +15,8 @@ from flask import (
 
 from config import (
     FOUNDER_DISCORD_ID,
-    ADMIN_DISCORD_IDS
+    ADMIN_DISCORD_IDS,
+    get_user_role
 )
 
 
@@ -123,19 +124,7 @@ def callback():
 
 
 
-    if discord_id == FOUNDER_DISCORD_ID:
-
-        role = "FOUNDER"
-
-
-    elif discord_id in ADMIN_DISCORD_IDS:
-
-        role = "ADMIN"
-
-
-    else:
-
-        role = "USER"
+    role = get_user_role(discord_id)
 
 
 
