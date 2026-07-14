@@ -310,56 +310,43 @@ def count_panels(panels):
 # DASHBOARD
 # =========================
 
-
 @app.route("/")
 def dashboard():
 
+    user = session.get("user")
 
-    user=session.get(
-        "user",
-        {
-
-        "username":
-        "Visiteur",
-
-        "role":
-        "USER"
-
-        }
-
-    )
+    # Connexion Discord obligatoire
+    if not user:
+        return redirect("/login")
 
 
-    tickets=load_json(
+    tickets = load_json(
         TICKETS_JSON_FILE
     )
 
 
-    panels=load_json(
+    panels = load_json(
         PANELS_JSON_FILE
     )
 
 
-    config=load_json(
+    config = load_json(
         CONFIG_JSON_FILE
     )
 
 
-    opened,closed=ticket_counts(
+    opened, closed = ticket_counts(
         tickets
     )
 
 
-    stats={
+    stats = {
 
-        "open":
-        opened,
+        "open": opened,
 
-        "closed":
-        closed,
+        "closed": closed,
 
-        "panels":
-        count_panels(
+        "panels": count_panels(
             panels
         )
 
@@ -381,9 +368,6 @@ def dashboard():
         config=config
 
     )
-
-
-
 
 # =========================
 # PAGES
