@@ -1,7 +1,59 @@
 import json
 import os
 from pathlib import Path
-from flask import Flask, jsonify, render_template
+
+import requests
+
+from flask import (
+    Flask,
+    jsonify,
+    render_template,
+    request,
+    session,
+    redirect
+)
+
+from config import (
+    FOUNDER_DISCORD_ID,
+    ADMIN_DISCORD_IDS
+)
+
+
+app = Flask(__name__)
+
+app.secret_key = os.getenv(
+    "SECRET_KEY",
+    "change-moi"
+)
+
+
+app.config["JSON_SORT_KEYS"] = False
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+
+
+
+# ======================
+# DISCORD OAUTH
+# ======================
+
+DISCORD_CLIENT_ID = os.getenv(
+    "DISCORD_CLIENT_ID"
+)
+
+DISCORD_CLIENT_SECRET = os.getenv(
+    "DISCORD_CLIENT_SECRET"
+)
+
+DISCORD_REDIRECT = os.getenv(
+    "DISCORD_REDIRECT",
+    "https://cecabot-web.onrender.com/callback"
+)
+
+
+
+# ======================
+# FILES
+# ======================
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -9,150 +61,282 @@ TICKETS_JSON_FILE = BASE_DIR.parent / "tickets.json"
 PANELS_JSON_FILE = BASE_DIR.parent / "panels.json"
 CONFIG_JSON_FILE = BASE_DIR.parent / "config.json"
 
-app = Flask(__name__)
-
-app.config["JSON_SORT_KEYS"] = False
-app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 
-def load_json(path: Path) -> dict:
+# ======================
+# AUTH DISCORD
+# ======================
+
+
+@app.route("/login")
+def login():
+
+    discord_url = (
+        "https://discord.com/oauth2/authorize"
+        f"?client_id={DISCORD_CLIENT_ID}"
+        "&response_type=code"
+        f"&redirect_uri={DISCORD_REDIRECT}"
+        "&scope=identify"
+    )
+
+    return redirect(discord_url)
+
+
+
+@app.route("/callback")
+def callback():
+
+    code = request.args.get("code")
+
+    if not code:
+        return "Code Discord manquant", 400
+
+
+    token = requests.post(
+        "https://discord.com/api/oauth2/token",
+        data={
+            "client_id": DISCORD_CLIENT_ID,
+            "client_secret": DISCORD_CLIENT_SECRET,
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": DISCORD_REDIRECT
+        },
+        headers={
+            "Content-Type":
+            "application/x-www-form-urlencoded"
+        }
+    ).json()
+
+
+
+    user = requests.get(
+        "https://discord.com/api/users/@me",
+        headers={
+            "Authorization":
+            f"Bearer {token['access_token']}"
+        }
+    ).json()
+
+
+
+    discord_id = int(user["id"])
+
+
+
+    if discord_id == FOUNDER_DISCORD_ID:
+
+        role = "FOUNDER"
+
+
+    elif discord_id in ADMIN_DISCORD_IDS:
+
+        role = "ADMIN"
+
+
+    else:
+
+        role = "USER"
+
+
+
+    session["user"] = {
+
+        "id": discord_id,
+
+        "username":
+            user.get(
+                "global_name",
+                user["username"]
+            ),
+
+        "role": role
+
+    }
+
+
+
+    return redirect("/")
+
+
+
+
+# ======================
+# JSON
+# ======================
+
+
+def load_json(path):
+
     try:
+
         if not path.exists():
             return {}
 
-        content = path.read_text(
-            encoding="utf-8"
-        ).strip()
-
-        if not content:
-            return {}
-
-        data = json.loads(content)
-
-        if isinstance(data, dict):
-            return data
-
-        return {}
-
-    except Exception as e:
-        print(f"❌ Erreur lecture {path}: {e}")
-        return {}
-
-
-def save_json(path: Path, data: dict):
-    try:
-        path.write_text(
-            json.dumps(
-                data,
-                indent=4,
-                ensure_ascii=False
-            ),
-            encoding="utf-8"
+        return json.loads(
+            path.read_text(
+                encoding="utf-8"
+            )
         )
 
     except Exception as e:
-        print(f"❌ Erreur sauvegarde {path}: {e}")
+
+        print(
+            f"Erreur JSON {path}:",
+            e
+        )
+
+        return {}
 
 
-def ticket_counts(tickets: dict):
 
-    open_count = 0
-    closed_count = 0
+
+
+def ticket_counts(tickets):
+
+    opened = 0
+    closed = 0
+
 
     for ticket in tickets.values():
 
-        if (
-            isinstance(ticket, dict)
-            and ticket.get("closed")
-        ):
-            closed_count += 1
-        else:
-            open_count += 1
+        if isinstance(ticket,dict):
 
-    return open_count, closed_count
+            if ticket.get("closed"):
+
+                closed += 1
+
+            else:
+
+                opened += 1
 
 
-def count_panels(panels: dict):
+    return opened, closed
+
+
+
+
+
+def count_panels(panels):
 
     total = 0
 
+
     for value in panels.values():
 
-        if isinstance(value, list):
+        if isinstance(value,list):
+
             total += len(value)
 
-        elif isinstance(value, dict):
+        elif isinstance(value,dict):
+
             total += 1
 
+
     return total
+
+
+
+
+
+# ======================
+# DASHBOARD
+# ======================
 
 
 @app.route("/")
 def dashboard():
 
+
+    user = session.get("user")
+
+
+    # tout le monde peut voir le site
+    # mais sans login = utilisateur normal
+
+    if not user:
+
+        user = {
+
+            "username":
+            "Visiteur",
+
+            "role":
+            "USER"
+
+        }
+
+
+
     tickets = load_json(
         TICKETS_JSON_FILE
     )
 
+
     panels = load_json(
         PANELS_JSON_FILE
     )
+
 
     config = load_json(
         CONFIG_JSON_FILE
     )
 
-    open_count, closed_count = (
-        ticket_counts(tickets)
+
+    opened, closed = ticket_counts(
+        tickets
     )
+
 
     stats = {
-        "open_tickets": open_count,
-        "closed_tickets": closed_count,
-        "panels": count_panels(
-            panels
-        ),
-        "guilds": len(
-            config.get(
-                "guilds",
-                {}
+
+        "open":
+            opened,
+
+        "closed":
+            closed,
+
+        "panels":
+            count_panels(
+                panels
             )
-        )
+
     }
 
+
+
     return render_template(
+
         "dashboard.html",
+
+        user=user,
+
         stats=stats,
+
         tickets=tickets,
+
         panels=panels,
+
         config=config
+
     )
 
 
-@app.route("/tickets")
-def tickets_page():
-
-    tickets = load_json(
-        TICKETS_JSON_FILE
-    )
-
-    return render_template(
-        "tickets.html",
-        tickets=tickets
-    )
 
 
-@app.route("/panels")
-def panels_page():
 
-    panels = load_json(
-        PANELS_JSON_FILE
-    )
+@app.route("/logout")
+def logout():
 
-    return render_template(
-        "panels.html",
-        panels=panels
-    )
+    session.clear()
+
+    return redirect("/")
+
+
+
+
+# ======================
+# API
+# ======================
 
 
 @app.route("/api/stats")
@@ -166,128 +350,76 @@ def api_stats():
         PANELS_JSON_FILE
     )
 
-    config = load_json(
-        CONFIG_JSON_FILE
-    )
 
-    open_count, closed_count = (
-        ticket_counts(tickets)
-    )
-
-    return jsonify(
-        {
-            "success": True,
-            "stats": {
-                "tickets_open":
-                    open_count,
-
-                "tickets_closed":
-                    closed_count,
-
-                "panels":
-                    count_panels(
-                        panels
-                    ),
-
-                "guilds":
-                    len(
-                        config.get(
-                            "guilds",
-                            {}
-                        )
-                    )
-            }
-        }
+    opened,closed = ticket_counts(
+        tickets
     )
 
 
-@app.route("/api/tickets")
-def api_tickets():
+    return jsonify({
 
-    return jsonify(
-        load_json(
-            TICKETS_JSON_FILE
-        )
-    )
+        "open":
+            opened,
 
+        "closed":
+            closed,
 
-@app.route("/api/panels")
-def api_panels():
+        "panels":
+            count_panels(
+                panels
+            )
 
-    return jsonify(
-        load_json(
-            PANELS_JSON_FILE
-        )
-    )
+    })
 
 
-@app.route("/api/config")
-def api_config():
 
-    return jsonify(
-        load_json(
-            CONFIG_JSON_FILE
-        )
-    )
 
 
 @app.route("/api/health")
 def health():
 
-    return jsonify(
-        {
-            "success": True,
-            "status": "online"
-        }
-    )
+    return jsonify({
+
+        "status":
+        "online"
+
+    })
+
+
+
 
 
 @app.errorhandler(404)
-def not_found(_):
+def error404(e):
 
-    return jsonify(
-        {
-            "success": False,
-            "error": "Page introuvable"
-        }
-    ), 404
+    return jsonify({
+
+        "error":
+        "Page introuvable"
+
+    }),404
 
 
-@app.errorhandler(500)
-def internal_error(error):
 
-    print(error)
-
-    return jsonify(
-        {
-            "success": False,
-            "error": "Erreur interne"
-        }
-    ), 500
 
 
 if __name__ == "__main__":
 
-    port = int(
+
+    port=int(
         os.getenv(
             "PORT",
             3000
         )
     )
 
-    host = os.getenv(
-        "FLASK_HOST",
-        "0.0.0.0"
-    )
-
-    print("================================")
-    print("🌐 Dashboard TicketMP")
-    print(f"Host : {host}")
-    print(f"Port : {port}")
-    print("================================")
 
     app.run(
-        host=host,
+
+        host="0.0.0.0",
+
         port=port,
-        debug=True
+
+        debug=False
+
     )
