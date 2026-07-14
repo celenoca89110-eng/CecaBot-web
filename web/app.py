@@ -78,15 +78,24 @@ CONFIG_JSON_FILE = (
 @app.route("/login")
 def login():
 
-    discord_url = (
-        "https://discord.com/oauth2/authorize"
-        f"?client_id={DISCORD_CLIENT_ID}"
-        "&response_type=code"
-        f"&redirect_uri={DISCORD_REDIRECT}"
-        "&scope=identify%20guilds"
+    params = {
+        "client_id": DISCORD_CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri": DISCORD_REDIRECT,
+        "scope": "identify guilds"
+    }
+
+    url = (
+        "https://discord.com/oauth2/authorize?"
+        + "&".join(
+            [
+                f"{k}={requests.utils.quote(str(v))}"
+                for k,v in params.items()
+            ]
+        )
     )
 
-    return redirect(discord_url)
+    return redirect(url)
 
 # =========================
 # CALLBACK DISCORD
@@ -186,34 +195,51 @@ def callback():
     )
 
 
+    # =========================
+    # CREATION SESSION
+    # =========================
+
+    session.permanent = True
+
 
     session["user"] = {
 
         "id": discord_id,
 
-        "username":
-        user.get(
+        "username": user.get(
             "global_name",
             user["username"]
         ),
 
-        "avatar":
-        user.get("avatar"),
+        "avatar": user.get(
+            "avatar"
+        ),
 
-        "role":
-        role
+        "role": role
 
     }
 
 
-    # Sauvegarde des serveurs
-
     session["guilds"] = guilds
 
 
+    # Sauvegarde token Discord
+    session["discord_token"] = token["access_token"]
+
+
+    print(
+        "Connexion Discord réussie :",
+        user["username"]
+    )
+
+
+    print(
+        "Serveurs trouvés :",
+        len(guilds)
+    )
+
 
     return redirect("/servers")
-
 
 
 
