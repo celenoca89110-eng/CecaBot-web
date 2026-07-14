@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Panels — TicketMP Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="sidebar">
+    <h2>⚙ TicketMP Dashboard</h2>
+    <a href="/">📊 Dashboard</a>
+    <a href="/tickets">🎫 Tickets</a>
+    <a href="/panels">🧩 Panels</a>
+</div>
+<div class="main">
+    <h1>🧩 Panels</h1>
+    {% if panels %}
+        {% for guild_id, items in panels.items() %}
+        <section class="panel-group">
+            <h2>Guild ID: <code>{{ guild_id }}</code></h2>
+            {% if items %}
+            <div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+                {% for panel in items %}
+                <div class="card">
+                    <p><strong>Channel ID</strong><br><code>{{ panel.channel_id }}</code></p>
+                    <p><strong>Category</strong><br>{{ panel.category or '—' }}</p>
+                    <p><strong>Label</strong><br>{{ panel.label or '—' }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p>Aucun panel pour cette guild.</p>
+            {% endif %}
+        </section>
+        {% endfor %}
+    {% else %}
+        <p>Aucun panel trouvé dans <code>panels.json</code>.</p>
+    {% endif %}
+</div>
+</body>
+</html>
