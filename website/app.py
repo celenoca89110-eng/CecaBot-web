@@ -52,10 +52,15 @@ app = Flask(
 
 
 app.secret_key = os.getenv(
-    "FLASK_SECRET",
-    "ticketmp-secret-change"
+    "FLASK_SECRET"
 )
 
+
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax"
+)
 
 
 # ==========================
