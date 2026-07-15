@@ -554,10 +554,102 @@ def callback():
 # SERVER MANAGEMENT
 # ==================================================
 
+from flask import request, session, redirect, render_template
+from database import get_db
+
+
+def check_login():
+
+    if "user" not in session:
+        return False
+
+    return True
+
+
+
+def get_guild(guild_id):
+
+    return next(
+        (
+            g
+            for g in session.get("guilds", [])
+            if g["id"] == guild_id
+        ),
+        None
+    )
+
+
+
+def create_guild_config(guild_id):
+
+    db = get_db()
+
+
+    db.execute(
+    """
+    INSERT OR IGNORE INTO guild_config
+    (
+        guild_id,
+        language,
+        color,
+        anti_raid,
+        automod,
+        logs,
+        notifications
+    )
+
+    VALUES
+    (
+        ?,
+        'fr',
+        '#5865F2',
+        0,
+        0,
+        0,
+        1
+    )
+    """,
+    (guild_id,)
+    )
+
+
+    db.commit()
+    db.close()
+
+
+
+
+def get_config(guild_id):
+
+    create_guild_config(guild_id)
+
+
+    db=get_db()
+
+
+    config=db.execute(
+    """
+    SELECT *
+    FROM guild_config
+    WHERE guild_id=?
+    """,
+    (guild_id,)
+    ).fetchone()
+
+
+    db.close()
+
+
+    return config
+
+
+
+
+
 @app.route("/servers")
 def servers():
 
-    if "user" not in session:
+    if not check_login():
         return redirect("/login")
 
 
@@ -569,76 +661,274 @@ def servers():
 
 
 
+
+
+
 @app.route("/server/<guild_id>")
 def server_manage(guild_id):
 
-    if "user" not in session:
+    if not check_login():
         return redirect("/login")
 
 
-    guild = next(
-        (
-            g
-            for g in session.get("guilds", [])
-            if g["id"] == guild_id
-        ),
-        None
-    )
+    guild=get_guild(guild_id)
 
 
     if not guild:
         return "Serveur inaccessible",403
 
 
+
+    config=get_config(guild_id)
+
+
+
     return render_template(
         "server.html",
         user=session["user"],
-        guild=guild
+        guild=guild,
+        config=config
     )
 
 
 
-@app.route("/server/<guild_id>/settings")
+
+
+# ==================================================
+# GENERAL SETTINGS
+# ==================================================
+
+
+@app.route(
+"/server/<guild_id>/settings",
+methods=["GET","POST"]
+)
 def server_settings(guild_id):
 
-    if "user" not in session:
+
+    if not check_login():
         return redirect("/login")
+
+
+    config=get_config(guild_id)
+
+
+
+    if request.method=="POST":
+
+
+        language=request.form.get(
+            "language"
+        )
+
+
+        color=request.form.get(
+            "color"
+        )
+
+
+        db=get_db()
+
+
+        db.execute(
+        """
+        UPDATE guild_config
+
+        SET
+        language=?,
+        color=?
+
+        WHERE guild_id=?
+
+        """,
+        (
+            language,
+            color,
+            guild_id
+        ))
+
+        db.commit()
+        db.close()
+
+
+
+        return redirect(
+            f"/server/{guild_id}/settings"
+        )
+
+
 
 
     return render_template(
         "server_settings.html",
-        guild_id=guild_id
+        guild_id=guild_id,
+        config=config
     )
 
 
 
-@app.route("/server/<guild_id>/tickets")
+
+
+
+
+# ==================================================
+# TICKETS CONFIG
+# ==================================================
+
+
+@app.route(
+"/server/<guild_id>/tickets",
+methods=["GET","POST"]
+)
 def server_tickets(guild_id):
 
-    if "user" not in session:
+
+    if not check_login():
         return redirect("/login")
+
+
+    config=get_config(guild_id)
+
+
+
+    if request.method=="POST":
+
+
+        category=request.form.get(
+            "ticket_category"
+        )
+
+
+        role=request.form.get(
+            "ticket_staff_role"
+        )
+
+
+        logs=request.form.get(
+            "ticket_log_channel"
+        )
+
+
+
+        db=get_db()
+
+
+        db.execute(
+        """
+        UPDATE guild_config
+
+        SET
+        ticket_category=?,
+        ticket_staff_role=?,
+        ticket_log_channel=?
+
+        WHERE guild_id=?
+
+        """,
+        (
+        category,
+        role,
+        logs,
+        guild_id
+        ))
+
+
+        db.commit()
+        db.close()
+
+
+
+        return redirect(
+        f"/server/{guild_id}/tickets"
+        )
+
 
 
     return render_template(
         "server_tickets.html",
-        guild_id=guild_id
+        guild_id=guild_id,
+        config=config
     )
 
 
 
-@app.route("/server/<guild_id>/panel")
+
+
+
+
+# ==================================================
+# PANEL CONFIG
+# ==================================================
+
+
+@app.route(
+"/server/<guild_id>/panel",
+methods=["GET","POST"]
+)
 def server_panel(guild_id):
 
-    if "user" not in session:
+
+    if not check_login():
         return redirect("/login")
+
+
+    config=get_config(guild_id)
+
+
+
+    if request.method=="POST":
+
+
+        channel=request.form.get(
+            "panel_channel"
+        )
+
+
+        message=request.form.get(
+            "panel_message"
+        )
+
+
+
+        db=get_db()
+
+
+
+        db.execute(
+        """
+        UPDATE guild_config
+
+        SET
+        panel_channel=?,
+        panel_message=?
+
+        WHERE guild_id=?
+
+        """,
+        (
+        channel,
+        message,
+        guild_id
+        ))
+
+
+
+        db.commit()
+        db.close()
+
+
+
+        return redirect(
+        f"/server/{guild_id}/panel"
+        )
+
 
 
     return render_template(
         "server_panel.html",
-        guild_id=guild_id
+        guild_id=guild_id,
+        config=config
     )
-
-
 # ==================================================
 # DASHBOARD
 # ==================================================
