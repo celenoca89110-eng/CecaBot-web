@@ -13,6 +13,8 @@ from flask import (
     session
 )
 
+from datetime import timedelta
+app.permanent_session_lifetime = timedelta(days=7)
 
 # ==========================
 # PATHS
@@ -117,15 +119,28 @@ def load_json(path):
 # ==========================
 
 
+from urllib.parse import urlencode
+
+
 @app.route("/login")
 def login():
 
+    params = {
+
+        "client_id": DISCORD_CLIENT_ID,
+
+        "response_type": "code",
+
+        "redirect_uri": DISCORD_REDIRECT_URI,
+
+        "scope": "identify guilds"
+
+    }
+
+
     url = (
-        "https://discord.com/oauth2/authorize"
-        f"?client_id={DISCORD_CLIENT_ID}"
-        "&response_type=code"
-        f"&redirect_uri={DISCORD_REDIRECT_URI}"
-        "&scope=identify"
+        "https://discord.com/oauth2/authorize?"
+        + urlencode(params)
     )
 
 
@@ -216,7 +231,7 @@ def callback():
 
 
     session["user"] = user
-
+    session.permanent = True
 
 
     return redirect("/")
