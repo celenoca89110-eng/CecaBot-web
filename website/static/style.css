@@ -3,8 +3,7 @@
     --bg:#070914;
 
     --panel:rgba(20,24,38,.85);
-    --panel-light:rgba(255,255,255,.06);
-
+    --panel-2:#111626;
     --panel-hover:#20283d;
 
     --text:#ffffff;
@@ -12,7 +11,7 @@
 
 
     --accent:#5865F2;
-    --purple:#8b5cf6;
+    --accent-light:#7289ff;
 
     --success:#57F287;
     --danger:#ED4245;
@@ -21,65 +20,39 @@
 
     --border:rgba(255,255,255,.08);
 
-
     --shadow:
-    0 25px 60px rgba(0,0,0,.45);
+    0 20px 50px rgba(0,0,0,.45);
 
-
-    --radius:22px;
-
+    --radius:20px;
 }
 
 
 
 /* =========================
- RESET
+   RESET
 ========================= */
 
-
 *{
-
     margin:0;
     padding:0;
-
     box-sizing:border-box;
-
 }
-
-
-
-html{
-
-    scroll-behavior:smooth;
-
-}
-
 
 
 body{
 
-
     font-family:
-    Inter,
-    "Segoe UI",
+    "Inter",
     Arial,
     sans-serif;
 
 
     background:
-
     radial-gradient(
         circle at top left,
-        rgba(88,101,242,.25),
-        transparent 40%
-    ),
-
-    radial-gradient(
-        circle at bottom right,
-        rgba(139,92,246,.20),
+        rgba(88,101,242,.18),
         transparent 35%
     ),
-
     var(--bg);
 
 
@@ -87,38 +60,31 @@ body{
 
     min-height:100vh;
 
-
 }
-
 
 
 
 /* =========================
- SCROLLBAR
+   SCROLLBAR
 ========================= */
 
 
 ::-webkit-scrollbar{
-
-    width:9px;
-
+    width:8px;
 }
 
 
 ::-webkit-scrollbar-track{
-
     background:#080a12;
-
 }
 
 
 ::-webkit-scrollbar-thumb{
 
     background:
-
     linear-gradient(
         var(--accent),
-        var(--purple)
+        #8b5cf6
     );
 
     border-radius:20px;
@@ -127,108 +93,295 @@ body{
 
 
 
-
-
 /* =========================
- CONTAINER
+   SIDEBAR
 ========================= */
 
 
-.container{
+.sidebar{
 
 
-    max-width:1200px;
+    position:fixed;
 
-    margin:auto;
-
-    padding:40px;
-
-
-}
+    top:0;
+    left:0;
 
 
+    width:280px;
+
+    height:100vh;
 
 
-
-/* =========================
- CARD
-========================= */
-
-
-.card{
+    padding:30px 22px;
 
 
     background:
-
     linear-gradient(
-        145deg,
-        rgba(255,255,255,.08),
-        rgba(255,255,255,.03)
+        180deg,
+        rgba(21,25,40,.95),
+        rgba(10,12,20,.95)
     );
 
 
     backdrop-filter:blur(20px);
 
 
-    border:
-
+    border-right:
     1px solid var(--border);
 
 
-    border-radius:var(--radius);
+    box-shadow:
+    10px 0 40px rgba(0,0,0,.3);
 
 
-    padding:35px;
+
+    display:flex;
+
+    flex-direction:column;
+
+}
 
 
-    box-shadow:var(--shadow);
+
+.sidebar h2{
 
 
-    animation:
+    font-size:26px;
 
-    fade .4s ease;
+    font-weight:800;
+
+    margin-bottom:45px;
+
+
+    background:
+    linear-gradient(
+        90deg,
+        #5865F2,
+        #8b5cf6
+    );
+
+
+    -webkit-background-clip:text;
+
+    color:transparent;
+
+}
+
+
+
+
+
+.sidebar a{
+
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+
+    color:var(--text);
+
+
+    text-decoration:none;
+
+
+    padding:15px 18px;
+
+
+    margin-bottom:10px;
+
+
+    border-radius:16px;
+
+
+    font-weight:600;
+
+
+    transition:.25s;
 
 
 }
 
 
 
-@keyframes fade{
+
+.sidebar a:hover{
 
 
-from{
-
-    opacity:0;
-
-    transform:translateY(20px);
-
-}
+    background:
+    rgba(88,101,242,.15);
 
 
-to{
-
-    opacity:1;
-
-}
+    transform:
+    translateX(8px);
 
 
 }
+
+
+
+
+
+.sidebar a.active{
+
+
+    background:
+    linear-gradient(
+        135deg,
+        var(--accent),
+        #8b5cf6
+    );
+
+
+    box-shadow:
+    0 10px 25px
+    rgba(88,101,242,.4);
+
+
+}
+
 
 
 
 
 /* =========================
- SERVER HEADER
+ USER PROFILE
 ========================= */
 
 
-.server-header{
+.user-box{
 
 
-    display:flex;
+    margin-top:auto;
 
 
-    align-items:center;
+    background:
+    rgba(255,255,255,.04);
+
+
+    border:
+    1px solid var(--border);
+
+
+    padding:22px;
+
+
+    border-radius:22px;
+
+
+    text-align:center;
+
+
+}
+
+
+
+.avatar{
+
+
+    width:85px;
+
+    height:85px;
+
+
+    border-radius:50%;
+
+
+    border:
+    4px solid var(--accent);
+
+
+    margin-bottom:15px;
+
+
+}
+
+
+
+
+
+.user-box strong{
+
+    font-size:18px;
+
+}
+
+
+
+
+
+.user-box a{
+
+
+    margin-top:15px;
+
+
+    background:
+    rgba(237,66,69,.15);
+
+
+    color:#ff7676;
+
+
+}
+
+
+
+
+
+/* =========================
+ MAIN
+========================= */
+
+
+.main{
+
+
+    margin-left:280px;
+
+
+    padding:45px;
+
+
+}
+
+
+
+
+
+.main h1{
+
+
+    font-size:38px;
+
+
+    margin-bottom:35px;
+
+
+}
+
+
+
+
+
+/* =========================
+ CARDS
+========================= */
+
+
+.cards{
+
+
+    display:grid;
+
+
+    grid-template-columns:
+    repeat(
+        auto-fit,
+        minmax(240px,1fr)
+    );
 
 
     gap:25px;
@@ -238,23 +391,248 @@ to{
 
 
 
-.server-header h1{
 
 
-    font-size:38px;
+.card{
 
 
-    font-weight:900;
+    background:
+    linear-gradient(
+        145deg,
+        rgba(255,255,255,.06),
+        rgba(255,255,255,.02)
+    );
+
+
+    backdrop-filter:blur(15px);
+
+
+
+    border:
+    1px solid var(--border);
+
+
+
+    padding:30px;
+
+
+    border-radius:24px;
+
+
+    box-shadow:var(--shadow);
+
+
+    transition:.3s;
 
 
 }
 
 
 
-.server-header p{
+
+.card:hover{
+
+
+    transform:
+    translateY(-8px);
+
+
+    border-color:
+    rgba(88,101,242,.5);
+
+
+}
+
+
+
+
+
+.card h3{
 
 
     color:var(--muted);
+
+
+    font-size:15px;
+
+
+    margin-bottom:20px;
+
+
+}
+
+
+
+
+
+.card span{
+
+
+    font-size:45px;
+
+
+    font-weight:800;
+
+
+    color:white;
+
+
+}
+
+
+
+
+
+/* =========================
+ SECTIONS
+========================= */
+
+
+section{
+
+
+    margin-top:35px;
+
+
+    background:
+    rgba(20,24,38,.85);
+
+
+    border:
+    1px solid var(--border);
+
+
+    padding:30px;
+
+
+    border-radius:25px;
+
+
+    box-shadow:var(--shadow);
+
+
+}
+
+
+
+
+
+section h2{
+
+
+    margin-bottom:25px;
+
+
+}
+
+
+
+
+
+/* =========================
+ TICKETS
+========================= */
+
+
+.ticket{
+
+
+    background:
+    var(--panel-2);
+
+
+
+    border:
+
+    1px solid var(--border);
+
+
+
+    border-left:
+
+    5px solid var(--accent);
+
+
+
+    padding:22px;
+
+
+    border-radius:18px;
+
+
+    margin-bottom:15px;
+
+
+    transition:.25s;
+
+
+}
+
+
+
+
+
+.ticket:hover{
+
+
+    background:
+
+    var(--panel-hover);
+
+
+
+    transform:
+
+    translateX(5px);
+
+
+}
+
+
+
+
+
+/* =========================
+ SERVER CARD
+========================= */
+
+
+.server-card{
+
+
+    background:
+    var(--panel);
+
+
+
+    padding:25px;
+
+
+    border-radius:22px;
+
+
+    border:
+    1px solid var(--border);
+
+
+
+    transition:.3s;
+
+
+}
+
+
+
+
+.server-card:hover{
+
+
+    transform:
+    translateY(-6px);
+
+
+    border-color:
+    var(--accent);
 
 
 }
@@ -266,436 +644,43 @@ to{
 .server-icon{
 
 
-    width:100px;
+    width:70px;
 
-    height:100px;
+    height:70px;
 
 
     border-radius:50%;
 
 
-    border:
-
-    4px solid var(--accent);
-
-
-    box-shadow:
-
-    0 0 30px rgba(88,101,242,.6);
+    margin-bottom:15px;
 
 
 }
 
 
 
-
-
-hr{
-
-
-    border:none;
-
-
-    height:1px;
-
-
-    background:var(--border);
-
-
-    margin:35px 0;
-
-
-}
-
-
-
-
-
-/* =========================
- CONFIG GRID
-========================= */
-
-
-.config-grid{
-
-
-    display:grid;
-
-
-    grid-template-columns:
-
-    repeat(
-        auto-fit,
-        minmax(260px,1fr)
-    );
-
-
-    gap:25px;
-
-
-}
-
-
-
-
-
-.config-card{
-
-
-    background:
-
-
-    rgba(255,255,255,.05);
-
-
-    border:
-
-    1px solid var(--border);
-
-
-    border-radius:20px;
-
-
-    padding:30px;
-
-
-    color:white;
-
-
-    text-decoration:none;
-
-
-    transition:.3s;
-
-
-    position:relative;
-
-
-    overflow:hidden;
-
-
-}
-
-
-
-
-.config-card::before{
-
-
-    content:"";
-
-
-    position:absolute;
-
-
-    inset:0;
-
-
-    background:
-
-    linear-gradient(
-        135deg,
-        rgba(88,101,242,.25),
-        transparent
-    );
-
-
-    opacity:0;
-
-
-    transition:.3s;
-
-
-}
-
-
-
-
-
-.config-card:hover::before{
-
-
-    opacity:1;
-
-
-}
-
-
-
-
-
-.config-card:hover{
-
-
-    transform:
-
-    translateY(-8px);
-
-
-    border-color:
-
-    var(--accent);
-
-
-    box-shadow:
-
-    0 20px 40px
-    rgba(88,101,242,.25);
-
-
-}
-
-
-
-
-
-.config-card h3{
-
-
-    position:relative;
-
-
-    font-size:22px;
-
-
-    margin-bottom:12px;
-
-
-}
-
-
-
-
-.config-card p{
-
-
-    position:relative;
-
-
-    color:var(--muted);
-
-
-}
-
-
-
-
-
-/* =========================
- BUTTON
-========================= */
-
-
-.button,
-.btn,
-button{
-
-
-    display:inline-flex;
-
-
-    align-items:center;
-
-
-    justify-content:center;
-
-
-    gap:10px;
-
-
-    background:
-
-
-    linear-gradient(
-        135deg,
-        var(--accent),
-        var(--purple)
-    );
-
-
-    color:white;
-
-
-    text-decoration:none;
-
-
-    padding:15px 28px;
-
-
-    border-radius:16px;
-
-
-    font-weight:700;
-
-
-    border:none;
-
-
-    cursor:pointer;
-
-
-    transition:.3s;
-
-
-}
-
-
-
-
-.button:hover,
-.btn:hover,
-button:hover{
-
-
-    transform:
-
-    translateY(-4px);
-
-
-    box-shadow:
-
-    0 15px 35px
-    rgba(88,101,242,.45);
-
-
-}
-
-
-
-
-.secondary{
-
-
-    background:
-
-    rgba(255,255,255,.08);
-
-
-}
-
-
-
-
-/* =========================
- INFO BOX
-========================= */
-
-
-.info{
-
-
-    background:
-
-    rgba(255,255,255,.04);
-
-
-    border:
-
-    1px solid var(--border);
-
-
-    border-radius:20px;
-
-
-    padding:25px;
-
-
-}
-
-
-
-.info p{
-
-
-    margin-bottom:12px;
-
-
-    color:var(--muted);
-
-
-}
-
-
-
-.info strong{
-
-
-    color:white;
-
-
-}
-
-
-
-
-
-/* =========================
- SERVER LIST
-========================= */
-
-
-.server-card{
-
-
-    background:var(--panel);
-
-
-    border:
-
-    1px solid var(--border);
-
-
-    padding:25px;
-
-
-    border-radius:20px;
-
-
-    transition:.3s;
-
-
-}
-
-
-
-.server-card:hover{
-
-
-    transform:
-
-    translateY(-6px);
-
-
-    border-color:var(--accent);
-
-
-}
-
-
-
-
-
-/* =========================
- BADGES
-========================= */
 
 
 .badge{
 
 
-    padding:7px 14px;
+    display:inline-block;
 
 
-    border-radius:50px;
+    padding:6px 12px;
 
 
-    font-weight:700;
+    border-radius:20px;
 
 
     font-size:13px;
 
 
+    font-weight:700;
+
+
 }
+
 
 
 
@@ -703,14 +688,16 @@ button:hover{
 
 
     background:
-
     rgba(87,242,135,.15);
 
 
-    color:var(--success);
+    color:
+    var(--success);
 
 
 }
+
+
 
 
 
@@ -720,33 +707,32 @@ button:hover{
 
 
 input,
-textarea,
-select{
+select,
+textarea{
 
 
     width:100%;
 
 
-    background:
-
-    rgba(255,255,255,.05);
-
-
-    border:
-
-    1px solid var(--border);
-
-
-    padding:16px;
+    padding:15px;
 
 
     border-radius:16px;
 
 
+    background:
+    var(--panel-2);
+
+
     color:white;
 
 
+    border:
+    1px solid var(--border);
+
+
 }
+
 
 
 
@@ -760,18 +746,78 @@ select:focus{
 
 
     border-color:
-
     var(--accent);
 
 
     box-shadow:
-
-    0 0 0 5px
+    0 0 0 4px
     rgba(88,101,242,.2);
 
 
 }
 
+
+
+
+
+/* =========================
+ BUTTON
+========================= */
+
+
+button,
+.btn{
+
+
+    background:
+    linear-gradient(
+        135deg,
+        var(--accent),
+        #8b5cf6
+    );
+
+
+    color:white;
+
+
+    padding:14px 25px;
+
+
+    border-radius:15px;
+
+
+    border:none;
+
+
+    font-weight:700;
+
+
+    cursor:pointer;
+
+
+    transition:.25s;
+
+
+}
+
+
+
+
+
+button:hover,
+.btn:hover{
+
+
+    transform:
+    translateY(-3px);
+
+
+    box-shadow:
+    0 10px 25px
+    rgba(88,101,242,.4);
+
+
+}
 
 
 
@@ -784,43 +830,23 @@ select:focus{
 @media(max-width:900px){
 
 
-.container{
+.sidebar{
 
+    position:relative;
 
-    padding:20px;
+    width:100%;
 
-
-}
-
-
-
-.server-header{
-
-
-    flex-direction:column;
-
-
-    text-align:center;
-
+    height:auto;
 
 }
 
 
 
-.server-header h1{
+.main{
 
+    margin-left:0;
 
-    font-size:28px;
-
-
-}
-
-
-.config-grid{
-
-
-    grid-template-columns:1fr;
-
+    padding:25px;
 
 }
 
