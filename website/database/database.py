@@ -1,12 +1,22 @@
 import sqlite3
 import os
+from pathlib import Path
 
 
 # ==================================================
 # DATABASE CONFIG
 # ==================================================
 
-DATABASE_PATH = "data/ticketmp.db"
+BASE_DIR = Path(__file__).resolve().parent
+
+DATA_DIR = BASE_DIR / "data"
+
+DATA_DIR.mkdir(
+    exist_ok=True
+)
+
+
+DATABASE_PATH = DATA_DIR / "ticketmp.db"
 
 
 
@@ -16,22 +26,18 @@ DATABASE_PATH = "data/ticketmp.db"
 
 def get_db():
 
-    os.makedirs(
-        "data",
-        exist_ok=True
-    )
-
-
     conn = sqlite3.connect(
         DATABASE_PATH,
-        timeout=10
+        timeout=15,
+        check_same_thread=False
     )
 
 
     conn.row_factory = sqlite3.Row
 
 
-    # Performance SQLite
+    # Optimisation SQLite
+
     conn.execute(
         "PRAGMA journal_mode=WAL;"
     )
@@ -40,10 +46,12 @@ def get_db():
         "PRAGMA foreign_keys=ON;"
     )
 
+    conn.execute(
+        "PRAGMA synchronous=NORMAL;"
+    )
+
 
     return conn
-
-
 
 
 
@@ -53,12 +61,9 @@ def get_db():
 
 def create_tables():
 
-
     db = get_db()
 
-
     try:
-
 
         db.execute(
         """
@@ -67,29 +72,35 @@ def create_tables():
             guild_id TEXT PRIMARY KEY,
 
 
-            -- Tickets
+            -- =========================
+            -- TICKETS
+            -- =========================
 
-            ticket_category TEXT DEFAULT NULL,
+            ticket_category TEXT,
 
-            ticket_log_channel TEXT DEFAULT NULL,
+            ticket_log_channel TEXT,
 
-            ticket_staff_role TEXT DEFAULT NULL,
+            ticket_staff_role TEXT,
 
             ticket_message TEXT DEFAULT 
             'Cliquez sur le bouton pour ouvrir un ticket',
 
 
 
-            -- Panel
+            -- =========================
+            -- PANEL
+            -- =========================
 
-            panel_channel TEXT DEFAULT NULL,
+            panel_channel TEXT,
 
             panel_message TEXT DEFAULT 
             'Support TicketMP',
 
 
 
-            -- General
+            -- =========================
+            -- GENERAL
+            -- =========================
 
             language TEXT DEFAULT 'fr',
 
@@ -97,7 +108,9 @@ def create_tables():
 
 
 
-            -- Security
+            -- =========================
+            -- SECURITY
+            -- =========================
 
             anti_raid INTEGER DEFAULT 0,
 
@@ -107,23 +120,29 @@ def create_tables():
 
 
 
-            -- Logs
+            -- =========================
+            -- LOGS
+            -- =========================
 
             logs INTEGER DEFAULT 0,
 
-            log_channel TEXT DEFAULT NULL,
+            log_channel TEXT,
 
 
 
-            -- Notifications
+            -- =========================
+            -- NOTIFICATIONS
+            -- =========================
 
             notifications INTEGER DEFAULT 1,
 
-            notification_channel TEXT DEFAULT NULL,
+            notification_channel TEXT,
 
 
 
-            -- Custom
+            -- =========================
+            -- CUSTOM
+            -- =========================
 
             bot_name TEXT DEFAULT 'TicketMP',
 
@@ -132,9 +151,9 @@ def create_tables():
 
 
 
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 
         )
         """
@@ -144,10 +163,15 @@ def create_tables():
         db.commit()
 
 
-    except Exception as e:
+        print(
+            "✅ Database initialized"
+        )
+
+
+    except sqlite3.Error as e:
 
         print(
-            "❌ Database error:",
+            "❌ Database creation error:",
             e
         )
 
@@ -158,21 +182,15 @@ def create_tables():
 
 
 
-
-
-
 # ==================================================
-# CREATE SERVER CONFIG
+# CREATE GUILD CONFIG
 # ==================================================
 
 def create_guild_config(guild_id):
 
-
     db = get_db()
 
-
     try:
-
 
         db.execute(
         """
@@ -180,13 +198,12 @@ def create_guild_config(guild_id):
         (
             guild_id
         )
-
         VALUES
         (?)
 
         """,
         (
-            guild_id,
+            str(guild_id),
         )
         )
 
@@ -194,14 +211,17 @@ def create_guild_config(guild_id):
         db.commit()
 
 
+    except sqlite3.Error as e:
+
+        print(
+            "❌ Create guild error:",
+            e
+        )
+
 
     finally:
 
         db.close()
-
-
-
-
 
 
 
@@ -217,38 +237,68 @@ def get_guild_config(guild_id):
     )
 
 
-    db=get_db()
+    db = get_db()
 
 
-    config=db.execute(
-    """
-    SELECT *
+    try:
 
-    FROM guild_config
+        config = db.execute(
+        """
+        SELECT *
 
-    WHERE guild_id=?
+        FROM guild_config
 
-    """,
-    (
-        guild_id,
-    )
-    ).fetchone()
+        WHERE guild_id=?
 
-
-
-    db.close()
+        """,
+        (
+            str(guild_id),
+        )
+        ).fetchone()
 
 
-    return config
+        return config
 
 
+    finally:
 
+        db.close()
 
 
 
 # ==================================================
 # UPDATE CONFIG
 # ==================================================
+
+ALLOWED_FIELDS = {
+
+    "ticket_category",
+    "ticket_log_channel",
+    "ticket_staff_role",
+    "ticket_message",
+
+    "panel_channel",
+    "panel_message",
+
+    "language",
+    "color",
+
+    "anti_raid",
+    "anti_spam",
+    "automod",
+
+    "logs",
+    "log_channel",
+
+    "notifications",
+    "notification_channel",
+
+    "bot_name",
+    "embed_footer"
+
+}
+
+
 
 def update_guild_config(
     guild_id,
@@ -257,55 +307,63 @@ def update_guild_config(
 
 
     if not kwargs:
-        return
+        return False
 
 
 
-    db=get_db()
+    # Sécurité
+    kwargs = {
+        key:value
+        for key,value in kwargs.items()
+        if key in ALLOWED_FIELDS
+    }
 
 
 
-    fields=[]
-
-    values=[]
-
-
-
-    for key,value in kwargs.items():
-
-        fields.append(
-            f"{key}=?"
-        )
-
-        values.append(
-            value
-        )
+    if not kwargs:
+        return False
 
 
 
-    fields.append(
-        "updated_at=CURRENT_TIMESTAMP"
-    )
-
-
-    values.append(
-        guild_id
-    )
-
-
-
-    query=f"""
-    UPDATE guild_config
-
-    SET {",".join(fields)}
-
-    WHERE guild_id=?
-
-    """
-
+    db = get_db()
 
 
     try:
+
+        fields = []
+
+        values = []
+
+
+        for key,value in kwargs.items():
+
+            fields.append(
+                f"{key}=?"
+            )
+
+            values.append(
+                value
+            )
+
+
+        fields.append(
+            "updated_at=CURRENT_TIMESTAMP"
+        )
+
+
+        values.append(
+            str(guild_id)
+        )
+
+
+        query = f"""
+        UPDATE guild_config
+
+        SET {",".join(fields)}
+
+        WHERE guild_id=?
+
+        """
 
 
         db.execute(
@@ -317,7 +375,31 @@ def update_guild_config(
         db.commit()
 
 
+        return True
+
+
+
+    except sqlite3.Error as e:
+
+        print(
+            "❌ Update error:",
+            e
+        )
+
+        return False
+
+
 
     finally:
 
         db.close()
+
+
+
+# ==================================================
+# INITIALIZATION
+# ==================================================
+
+def init_database():
+
+    create_tables()
