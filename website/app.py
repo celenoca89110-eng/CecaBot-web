@@ -1,6 +1,8 @@
 import os
 import json
 from pathlib import Path
+from datetime import timedelta
+from urllib.parse import urlencode
 
 import requests
 
@@ -13,17 +15,12 @@ from flask import (
     session
 )
 
-from datetime import timedelta
-app.permanent_session_lifetime = timedelta(days=7)
 
 # ==========================
 # PATHS
 # ==========================
 
 BASE_DIR = Path(__file__).resolve().parent
-
-
-CONFIG_FILE = BASE_DIR / "config.json"
 
 
 # ==========================
@@ -35,9 +32,7 @@ try:
     store.init_db()
 
 except Exception as e:
-    print(
-        f"⚠️ Erreur chargement store : {e}"
-    )
+    print(f"⚠️ Erreur store : {e}")
     store = None
 
 
@@ -55,25 +50,29 @@ app = Flask(
 
 app.secret_key = os.getenv(
     "FLASK_SECRET",
-    "ticketmp-secret-change"
+    "change-moi-cette-cle"
 )
 
 
 app.config.update(
-    SESSION_COOKIE_SECURE=True,
+
+    SESSION_COOKIE_NAME="ticketmp_session",
+
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="None"
+
+    SESSION_COOKIE_SECURE=True,
+
+    SESSION_COOKIE_SAMESITE="None",
+
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7)
+
 )
 
-from datetime import timedelta
-
-app.permanent_session_lifetime = timedelta(days=7)
 
 
 # ==========================
-# ENV
+# ENV DISCORD
 # ==========================
-
 
 DISCORD_CLIENT_ID = os.getenv(
     "DISCORD_CLIENT_ID"
@@ -83,9 +82,10 @@ DISCORD_CLIENT_SECRET = os.getenv(
     "DISCORD_CLIENT_SECRET"
 )
 
+
 DISCORD_REDIRECT_URI = os.getenv(
     "DISCORD_REDIRECT_URI",
-    "http://127.0.0.1:3000/callback"
+    "https://cecabot-web.onrender.com/callback"
 )
 
 
@@ -93,7 +93,6 @@ DISCORD_REDIRECT_URI = os.getenv(
 # ==========================
 # JSON
 # ==========================
-
 
 def load_json(path):
 
@@ -108,23 +107,20 @@ def load_json(path):
             )
         )
 
+
     except Exception as e:
 
         print(
-            f"⚠️ JSON {path}: {e}"
+            f"⚠️ JSON erreur {path}: {e}"
         )
 
         return {}
 
 
 
-
 # ==========================
-# DISCORD LOGIN
+# AUTH DISCORD
 # ==========================
-
-
-from urllib.parse import urlencode
 
 
 @app.route("/login")
@@ -156,62 +152,49 @@ def login():
 @app.route("/callback")
 def callback():
 
-
-    code = request.args.get(
-        "code"
-    )
+    code = request.args.get("code")
 
 
     if not code:
 
-        return (
-            "Code Discord absent",
-            400
-        )
+        return "Code Discord absent",400
 
 
 
-    data = {
-
-        "client_id":
-            DISCORD_CLIENT_ID,
-
-        "client_secret":
-            DISCORD_CLIENT_SECRET,
-
-        "grant_type":
-            "authorization_code",
-
-        "code":
-            code,
-
-        "redirect_uri":
-            DISCORD_REDIRECT_URI
-
-    }
-
-
-
-    response = requests.post(
+    token_response = requests.post(
 
         "https://discord.com/api/oauth2/token",
 
-        data=data,
+        data={
+
+            "client_id": DISCORD_CLIENT_ID,
+
+            "client_secret": DISCORD_CLIENT_SECRET,
+
+            "grant_type": "authorization_code",
+
+            "code": code,
+
+            "redirect_uri": DISCORD_REDIRECT_URI
+
+        },
 
         headers={
+
             "Content-Type":
             "application/x-www-form-urlencoded"
+
         }
 
     )
 
 
-
-    token = response.json()
-
+    token = token_response.json()
 
 
     if "access_token" not in token:
+
+        print(token)
 
         return jsonify(token),400
 
@@ -231,22 +214,69 @@ def callback():
     )
 
 
-
     user = user_response.json()
 
 
+
+    session.clear()
+
+
+
     session["user"] = {
-        "id": user.get("id"),
-        "username": user.get("username"),
+
+        "id": str(user["id"]),
+
+        "username": user["username"],
+
         "avatar": user.get("avatar")
+
     }
+
 
     session.permanent = True
 
-    print("✅ USER CONNECTE :", user)
-    print("✅ SESSION :", dict(session))
 
-    return redirect("/")
+
+    print(
+        "✅ Connexion Discord :",
+        session["user"]
+    )
+
+
+    return redirect("/servers")
+
+
+
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    return redirect("/login")
+
+
+
+# ==========================
+# SERVERS
+# ==========================
+
+
+@app.route("/servers")
+def servers():
+
+    if "user" not in session:
+
+        return redirect("/login")
+
+
+    return render_template(
+
+        "servers.html",
+
+        user=session["user"]
+
+    )
 
 
 
@@ -266,73 +296,47 @@ def dashboard():
         )
 
 
+    tickets = {}
 
-    # Tickets SQLite
+    opened = 0
+
+    closed = 0
+
+
 
     if store:
 
         tickets = store.get_tickets_dict()
 
-        stats_db = store.stats_get()
+        stats = store.stats_get()
 
 
-        opened = stats_db.get(
+        opened = stats.get(
             "opened",
             0
         )
 
-        closed = stats_db.get(
+        closed = stats.get(
             "closed",
             0
         )
 
 
-    else:
-
-        tickets = {}
-
-        opened = 0
-
-        closed = 0
-
-
-
-
-    panels_file = BASE_DIR / "panels.json"
-
 
     panels = load_json(
-        panels_file
+        BASE_DIR / "panels.json"
     )
 
 
+    total_panels = sum(
 
-    total_panels = 0
+        len(v)
 
+        for v in panels.values()
 
-    for value in panels.values():
+        if isinstance(v,list)
 
-        if isinstance(value,list):
-
-            total_panels += len(value)
-
-
-
-    stats = {
-
-
-        "open":
-            opened,
-
-
-        "closed":
-            closed,
-
-
-        "panels":
-            total_panels
-
-    }
+    )
 
 
 
@@ -340,37 +344,48 @@ def dashboard():
 
         "dashboard.html",
 
-        stats=stats,
+        user=session["user"],
 
         tickets=tickets,
 
         panels=panels,
 
-        user=session["user"]
+        stats={
+
+            "open": opened,
+
+            "closed": closed,
+
+            "panels": total_panels
+
+        }
 
     )
 
 
 
-
-
 # ==========================
-# TICKETS PAGE
+# PAGES
 # ==========================
 
 
 @app.route("/tickets")
 def tickets_page():
 
+    if "user" not in session:
 
-    if store:
+        return redirect("/login")
 
-        tickets = store.get_tickets_dict()
 
-    else:
+    tickets = (
 
-        tickets = {}
+        store.get_tickets_dict()
 
+        if store
+
+        else {}
+
+    )
 
 
     return render_template(
@@ -383,33 +398,23 @@ def tickets_page():
 
 
 
-
-
-# ==========================
-# PANELS PAGE
-# ==========================
-
-
 @app.route("/panels")
 def panels_page():
 
+    if "user" not in session:
 
-    panels = load_json(
-
-        BASE_DIR / "panels.json"
-
-    )
+        return redirect("/login")
 
 
     return render_template(
 
         "panels.html",
 
-        panels=panels
+        panels=load_json(
+            BASE_DIR / "panels.json"
+        )
 
     )
-
-
 
 
 
@@ -419,29 +424,31 @@ def panels_page():
 
 
 @app.route("/api/status")
-def status():
-
+def api_status():
 
     return jsonify({
 
-        "status":
-            "online",
+        "status":"online",
 
-        "service":
-            "TicketMP Dashboard",
+        "service":"TicketMP Dashboard",
 
-        "version":
-            "2.0"
-
+        "version":"3.0"
 
     })
 
 
 
+@app.route("/api/session")
+def api_session():
+
+    return jsonify(
+        dict(session)
+    )
+
+
 
 @app.route("/api/tickets")
 def api_tickets():
-
 
     if store:
 
@@ -449,54 +456,40 @@ def api_tickets():
             store.get_tickets_dict()
         )
 
-
     return jsonify({})
-
-
 
 
 
 @app.route("/api/panels")
 def api_panels():
 
-
     return jsonify(
 
         load_json(
-
             BASE_DIR / "panels.json"
-
         )
 
     )
 
 
 
-
-
 # ==========================
-# START DIRECT
+# START
 # ==========================
 
 
 if __name__ == "__main__":
 
-
     port = int(
-
         os.getenv(
-
             "PORT",
-
             "3000"
-
         )
-
     )
 
 
     print("==============================")
-    print("🌐 TicketMP Dashboard lancé")
+    print("🌐 TicketMP Dashboard")
     print(f"📡 Port : {port}")
     print("==============================")
 
@@ -507,8 +500,6 @@ if __name__ == "__main__":
 
         port=port,
 
-        debug=False,
-
-        use_reloader=False
+        debug=False
 
     )
