@@ -54,15 +54,20 @@ app = Flask(
 
 
 app.secret_key = os.getenv(
-    "FLASK_SECRET"
+    "FLASK_SECRET",
+    "change-this-secret"
 )
 
 
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax"
+    SESSION_COOKIE_SAMESITE="None"
 )
+
+from datetime import timedelta
+
+app.permanent_session_lifetime = timedelta(days=7)
 
 
 # ==========================
@@ -233,10 +238,10 @@ def callback():
     session["user"] = user
     session.permanent = True
 
+    print("✅ USER CONNECTE :", user)
+    print("✅ SESSION :", dict(session))
 
     return redirect("/")
-
-
 
 
 
