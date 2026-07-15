@@ -16,30 +16,31 @@ from flask import (
 )
 
 
-# ==========================
-# PATHS
-# ==========================
+# ==================================================
+# PATH
+# ==================================================
 
 BASE_DIR = Path(__file__).resolve().parent
 
 
-# ==========================
-# STORE DATABASE
-# ==========================
+
+# ==================================================
+# DATABASE STORE
+# ==================================================
 
 try:
     import store
     store.init_db()
 
 except Exception as e:
-    print(f"⚠️ Erreur store : {e}")
+    print("⚠️ Store erreur :", e)
     store = None
 
 
 
-# ==========================
+# ==================================================
 # FLASK
-# ==========================
+# ==================================================
 
 app = Flask(
     __name__,
@@ -52,6 +53,7 @@ app.secret_key = os.getenv(
     "FLASK_SECRET",
     "change-moi-cette-cle"
 )
+
 
 
 app.config.update(
@@ -70,9 +72,9 @@ app.config.update(
 
 
 
-# ==========================
-# ENV DISCORD
-# ==========================
+# ==================================================
+# DISCORD CONFIG
+# ==================================================
 
 DISCORD_CLIENT_ID = os.getenv(
     "DISCORD_CLIENT_ID"
@@ -90,9 +92,10 @@ DISCORD_REDIRECT_URI = os.getenv(
 
 
 
-# ==========================
+
+# ==================================================
 # JSON
-# ==========================
+# ==================================================
 
 def load_json(path):
 
@@ -100,6 +103,7 @@ def load_json(path):
 
         if not path.exists():
             return {}
+
 
         return json.loads(
             path.read_text(
@@ -111,146 +115,32 @@ def load_json(path):
     except Exception as e:
 
         print(
-            f"⚠️ JSON erreur {path}: {e}"
+            "JSON erreur:",
+            e
         )
 
         return {}
 
 
 
-# ==========================
-# AUTH DISCORD
-# ==========================
 
 
-@app.route("/login")
-def login():
+# ==================================================
+# DISCORD API
+# ==================================================
 
-    params = {
-
-        "client_id": DISCORD_CLIENT_ID,
-
-        "response_type": "code",
-
-        "redirect_uri": DISCORD_REDIRECT_URI,
-
-        "scope": "identify guilds"
-
-    }
-
-
-    url = (
-        "https://discord.com/oauth2/authorize?"
-        + urlencode(params)
-    )
-
-
-    return redirect(url)
-
-
-
-@app.route("/callback")
-def callback():
-
-    code = request.args.get("code")
-
-
-    if not code:
-
-        return "Code Discord absent",400
-
-
-
-    token_response = requests.post(
-
-        "https://discord.com/api/oauth2/token",
-
-        data={
-
-            "client_id": DISCORD_CLIENT_ID,
-
-            "client_secret": DISCORD_CLIENT_SECRET,
-
-            "grant_type": "authorization_code",
-
-            "code": code,
-
-            "redirect_uri": DISCORD_REDIRECT_URI
-
-        },
-
-        headers={
-
-            "Content-Type":
-            "application/x-www-form-urlencoded"
-
-        }
-
-    )
-
-
-    token = token_response.json()
-
-
-    if "access_token" not in token:
-
-        print(token)
-
-        return jsonify(token),400
-
-
-
-    user_response = requests.get(
-
-        "https://discord.com/api/users/@me",
-
-        headers={
-
-            "Authorization":
-            f"Bearer {token['access_token']}"
-
-        }
-
-    )
-
-
-    user = user_response.json()
-
-
-
-    session.clear()
-
-
-
-session["user"] = {
-
-    "id": str(user["id"]),
-
-    "username": user["username"],
-
-    "avatar": user.get("avatar")
-
-}
-
-
-
-# ==========================
-# SERVEURS DISCORD
-# ==========================
-
-
-def get_user_guilds(access_token):
+def discord_get(url, token):
 
     try:
 
         response = requests.get(
 
-            "https://discord.com/api/users/@me/guilds",
+            url,
 
             headers={
 
                 "Authorization":
-                f"Bearer {access_token}"
+                f"Bearer {token}"
 
             },
 
@@ -262,11 +152,11 @@ def get_user_guilds(access_token):
         if response.status_code != 200:
 
             print(
-                "❌ Erreur Discord Guilds:",
+                "Discord API:",
                 response.text
             )
 
-            return []
+            return None
 
 
         return response.json()
@@ -276,11 +166,29 @@ def get_user_guilds(access_token):
     except Exception as e:
 
         print(
-            "❌ Erreur récupération serveurs:",
+            "Discord request erreur:",
             e
         )
 
-        return []
+        return None
+
+
+
+
+
+
+def get_user_guilds(token):
+
+    data = discord_get(
+
+        "https://discord.com/api/users/@me/guilds",
+
+        token
+
+    )
+
+
+    return data or []
 
 
 
@@ -290,21 +198,29 @@ def format_guild(guild):
 
 
     permissions = int(
+
         guild.get(
             "permissions",
             0
         )
+
     )
 
 
 
-    is_admin = bool(
-        permissions & 0x8
+    owner = guild.get(
+        "owner",
+        False
     )
 
 
-    can_manage = bool(
-        permissions & 0x20
+    admin = bool(
+        permissions & 8
+    )
+
+
+    manage = bool(
+        permissions & 32
     )
 
 
@@ -320,44 +236,37 @@ def format_guild(guild):
         "name":
         guild.get(
             "name",
-            "Serveur inconnu"
+            "Serveur"
         ),
 
 
 
         "icon":
-        guild.get("icon"),
-
-
-
-        "owner":
         guild.get(
-            "owner",
-            False
+            "icon"
         ),
 
 
 
-        "permissions":
-        permissions,
-
+        "owner":
+        owner,
 
 
         "administrator":
-        is_admin,
+        admin,
 
+
+        "manage":
+        manage,
 
 
         "can_manage":
         (
-            can_manage
+            owner
             or
-            is_admin
+            admin
             or
-            guild.get(
-                "owner",
-                False
-            )
+            manage
         )
 
     }
@@ -365,10 +274,54 @@ def format_guild(guild):
 
 
 
-# ==========================
-# CALLBACK DISCORD
-# ==========================
 
+# ==================================================
+# LOGIN DISCORD
+# ==================================================
+
+@app.route("/login")
+def login():
+
+
+    params = {
+
+
+        "client_id":
+        DISCORD_CLIENT_ID,
+
+
+        "response_type":
+        "code",
+
+
+        "redirect_uri":
+        DISCORD_REDIRECT_URI,
+
+
+        "scope":
+        "identify guilds"
+
+    }
+
+
+
+    return redirect(
+
+        "https://discord.com/oauth2/authorize?"
+
+        +
+
+        urlencode(params)
+
+    )
+
+
+
+
+
+# ==================================================
+# CALLBACK
+# ==================================================
 
 @app.route("/callback")
 def callback():
@@ -381,12 +334,54 @@ def callback():
 
     if not code:
 
-        return "Code Discord manquant",400
+        return "Code Discord absent",400
 
 
 
-    # Ici tu gardes ton échange OAuth
-    # token = requests.post(...)
+
+    token_request = requests.post(
+
+        "https://discord.com/api/oauth2/token",
+
+        data={
+
+
+            "client_id":
+            DISCORD_CLIENT_ID,
+
+
+            "client_secret":
+            DISCORD_CLIENT_SECRET,
+
+
+            "grant_type":
+            "authorization_code",
+
+
+            "code":
+            code,
+
+
+            "redirect_uri":
+            DISCORD_REDIRECT_URI
+
+        },
+
+
+        timeout=10
+
+    )
+
+
+
+    token = token_request.json()
+
+
+
+    if "access_token" not in token:
+
+        return jsonify(token),400
+
 
 
 
@@ -394,29 +389,54 @@ def callback():
 
 
 
-    # Sauvegarde utilisateur
-
-    session["user"] = user_data
 
 
+    user = discord_get(
 
+        "https://discord.com/api/users/@me",
 
-    # ==========================
-    # SERVEURS DISCORD
-    # ==========================
-
-
-    guilds = get_user_guilds(
         access_token
+
     )
 
 
 
-    available_servers = []
+    if not user:
+
+        return "Erreur utilisateur Discord",400
 
 
 
-    for guild in guilds:
+
+    session.clear()
+
+
+
+    session["user"] = {
+
+
+        "id":
+        user["id"],
+
+
+        "username":
+        user["username"],
+
+
+        "avatar":
+        user.get("avatar")
+
+
+    }
+
+
+
+
+
+    servers=[]
+
+
+    for guild in get_user_guilds(access_token):
 
 
         data = format_guild(
@@ -426,46 +446,56 @@ def callback():
 
         if data["can_manage"]:
 
-            available_servers.append(
+            servers.append(
                 data
             )
 
 
 
 
-    session["guilds"] = available_servers
+    session["guilds"] = servers
 
 
-    session.permanent = True
-
+    session.permanent=True
 
 
 
     print(
-        f"✅ Connexion Discord : {session['user']['username']}"
+        f"✅ Connexion : {user['username']}"
     )
 
 
     print(
-        f"🏠 Serveurs accessibles : {len(available_servers)}"
+        f"🏠 Serveurs : {len(servers)}"
     )
 
 
 
-    return redirect(
-        "/servers"
-    )
+    return redirect("/servers")
+
+
+
+
+
+# ==================================================
+# LOGOUT
+# ==================================================
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    return redirect("/login")
 
 
 
 
 
 
-
-# ==========================
+# ==================================================
 # SERVERS
-# ==========================
-
+# ==================================================
 
 @app.route("/servers")
 def servers():
@@ -473,9 +503,7 @@ def servers():
 
     if "user" not in session:
 
-        return redirect(
-            "/login"
-        )
+        return redirect("/login")
 
 
 
@@ -494,10 +522,63 @@ def servers():
 
 
 
-# ==========================
-# DASHBOARD
-# ==========================
 
+
+
+@app.route("/server/<guild_id>")
+def server_manage(guild_id):
+
+
+    if "user" not in session:
+
+        return redirect("/login")
+
+
+
+    guild = next(
+
+        (
+            g
+            for g in session.get(
+                "guilds",
+                []
+            )
+
+            if g["id"] == guild_id
+
+        ),
+
+        None
+
+    )
+
+
+
+    if not guild:
+
+        return "Serveur inaccessible",403
+
+
+
+    return render_template(
+
+        "server.html",
+
+        user=session["user"],
+
+        guild=guild
+
+    )
+
+
+
+
+
+
+
+# ==================================================
+# DASHBOARD
+# ==================================================
 
 @app.route("/")
 def dashboard():
@@ -510,25 +591,28 @@ def dashboard():
         )
 
 
-    tickets = {}
 
-    opened = 0
-
-    closed = 0
+    opened=0
+    closed=0
+    tickets={}
 
 
 
     if store:
 
+
         tickets = store.get_tickets_dict()
 
+
         stats = store.stats_get()
+
 
 
         opened = stats.get(
             "opened",
             0
         )
+
 
         closed = stats.get(
             "closed",
@@ -537,12 +621,17 @@ def dashboard():
 
 
 
+
     panels = load_json(
-        BASE_DIR / "panels.json"
+
+        BASE_DIR /
+        "panels.json"
+
     )
 
 
-    total_panels = sum(
+
+    total_panels=sum(
 
         len(v)
 
@@ -566,11 +655,11 @@ def dashboard():
 
         stats={
 
-            "open": opened,
+            "open":opened,
 
-            "closed": closed,
+            "closed":closed,
 
-            "panels": total_panels
+            "panels":total_panels
 
         }
 
@@ -578,10 +667,12 @@ def dashboard():
 
 
 
-# ==========================
-# PAGES
-# ==========================
 
+
+
+# ==================================================
+# PAGES
+# ==================================================
 
 @app.route("/tickets")
 def tickets_page():
@@ -591,7 +682,12 @@ def tickets_page():
         return redirect("/login")
 
 
-    tickets = (
+
+    return render_template(
+
+        "tickets.html",
+
+        tickets=
 
         store.get_tickets_dict()
 
@@ -602,22 +698,17 @@ def tickets_page():
     )
 
 
-    return render_template(
-
-        "tickets.html",
-
-        tickets=tickets
-
-    )
 
 
 
 @app.route("/panels")
 def panels_page():
 
+
     if "user" not in session:
 
         return redirect("/login")
+
 
 
     return render_template(
@@ -625,17 +716,22 @@ def panels_page():
         "panels.html",
 
         panels=load_json(
-            BASE_DIR / "panels.json"
+
+            BASE_DIR /
+            "panels.json"
+
         )
 
     )
 
 
 
-# ==========================
-# API
-# ==========================
 
+
+
+# ==================================================
+# API
+# ==================================================
 
 @app.route("/api/status")
 def api_status():
@@ -644,11 +740,13 @@ def api_status():
 
         "status":"online",
 
-        "service":"TicketMP Dashboard",
+        "service":"TicketMP",
 
-        "version":"3.0"
+        "version":"4.0"
 
     })
+
+
 
 
 
@@ -661,16 +759,22 @@ def api_session():
 
 
 
+
+
 @app.route("/api/tickets")
 def api_tickets():
 
-    if store:
+    return jsonify(
 
-        return jsonify(
-            store.get_tickets_dict()
-        )
+        store.get_tickets_dict()
 
-    return jsonify({})
+        if store
+
+        else {}
+
+    )
+
+
 
 
 
@@ -680,32 +784,42 @@ def api_panels():
     return jsonify(
 
         load_json(
-            BASE_DIR / "panels.json"
+
+            BASE_DIR /
+            "panels.json"
+
         )
 
     )
 
 
 
-# ==========================
+
+
+
+# ==================================================
 # START
-# ==========================
+# ==================================================
+
+if __name__=="__main__":
 
 
-if __name__ == "__main__":
+    port=int(
 
-    port = int(
         os.getenv(
             "PORT",
-            "3000"
+            3000
         )
+
     )
 
 
+
     print("==============================")
-    print("🌐 TicketMP Dashboard")
-    print(f"📡 Port : {port}")
+    print("🎫 TicketMP Dashboard")
+    print(f"🌐 Port : {port}")
     print("==============================")
+
 
 
     app.run(
