@@ -555,7 +555,7 @@ def callback():
 # ==================================================
 
 from flask import request, session, redirect, render_template
-from db import get_db
+from database import get_db
 
 
 def check_login():
