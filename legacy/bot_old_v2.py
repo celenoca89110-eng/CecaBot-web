@@ -16,6 +16,7 @@ from discord.ext import commands
 
 import store
 
+from anti_abuse import abuse_manager
 from config_ui import (
     ConfigController,
     ConfigRootView,
@@ -24,6 +25,7 @@ from config_ui import (
     ensure_guild_entry,
     ticket_client_overwrite,
 )
+from security_panel import setup_security_panel
 
 # =========================
 # CHEMINS & CONFIG FICHIERS
@@ -939,6 +941,7 @@ intents = discord.Intents.all()
 bot = TicketBot(command_prefix="!", intents=intents)
 
 cfg_ctrl = ConfigController(bot, config, CONFIG_FILE, load_cfg_file)
+setup_security_panel(bot, config, cfg_ctrl, command_enabled_check)
 
 
 def _embed_trim(text: str, limit: int = 3900) -> str:
@@ -1493,85 +1496,454 @@ async def whitelist_list_cmd(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="server_authorize", description="Autorise un serveur pour le bot (réservé au propriétaire)")
-@app_commands.describe(guild_id="ID du serveur Discord")
-@app_commands.check(command_enabled_check)
-async def server_authorize_cmd(interaction: discord.Interaction, guild_id: str):
-    if not is_bot_owner(interaction.user.id):
-        return await interaction.response.send_message(
-            "❌ Cette commande est réservée au propriétaire du bot.", ephemeral=True
-        )
-    
-    try:
-        gid_int = int(guild_id)
-    except ValueError:
-        return await interaction.response.send_message(
-            "❌ ID de serveur invalide.", ephemeral=True
-        )
-    
-    gid = str(guild_id)
-    if gid in config.get("guilds", {}):
-        return await interaction.response.send_message(
-            f"❌ Ce serveur est déjà autorisé.", ephemeral=True
-        )
-    
-    guild = bot.get_guild(gid_int)
-    ensure_guild_entry(config, gid, guild)
-    cfg_ctrl.save()
-    
-    embed = discord.Embed(
-        title="✅ Serveur autorisé",
-        description=f"Le serveur `{gid}` a été autorisé avec succès.",
-        color=discord.Color.green(),
+class ServerAuthorizeModal(discord.ui.Modal, title="Autoriser un serveur"):
+    guild_id = discord.ui.TextInput(
+        label="ID du serveur",
+        style=discord.TextStyle.short,
+        placeholder="Entrez l'ID du serveur",
+        required=True,
+        max_length=32,
     )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        guild_id = str(interaction.guild.id) if interaction.guild else "global"
+        lock = await abuse_manager.begin_modal_submit(
+            interaction,
+            guild_id,
+            "server_authorize_modal",
+            config,
+            bot,
+        )
+        if not lock:
+            return
+
+        try:
+            if not is_super_admin(interaction.user.id):
+                return await interaction.response.send_message("Accès refusé", ephemeral=True)
+
+            try:
+                gid_int = int(self.guild_id.value.strip())
+            except ValueError:
+                return await interaction.response.send_message(
+                    "❌ ID de serveur invalide.", ephemeral=True
+                )
+
+            gid = str(gid_int)
+            if gid in config.get("guilds", {}):
+                return await interaction.response.send_message(
+                    "❌ Ce serveur est déjà autorisé.", ephemeral=True
+                )
+
+            guild = bot.get_guild(gid_int)
+            ensure_guild_entry(config, gid, guild)
+            cfg_ctrl.save()
+
+            embed = discord.Embed(
+                title="✅ Serveur autorisé",
+                description=f"Le serveur `{gid}` a été autorisé avec succès.",
+                color=discord.Color.green(),
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        finally:
+            lock.release()
+            abuse_manager.clear_modal_open(guild_id, str(interaction.user.id))
 
 
-@bot.tree.command(name="server_unauthorize", description="Désautorise et quitte un serveur (réservé au propriétaire)")
-@app_commands.describe(guild_id="ID du serveur Discord")
+class ServerUnauthorizeModal(discord.ui.Modal, title="Désautoriser un serveur"):
+    guild_id = discord.ui.TextInput(
+        label="ID du serveur",
+        style=discord.TextStyle.short,
+        placeholder="Entrez l'ID du serveur",
+        required=True,
+        max_length=32,
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        guild_id = str(interaction.guild.id) if interaction.guild else "global"
+        lock = await abuse_manager.begin_modal_submit(
+            interaction,
+            guild_id,
+            "server_unauthorize_modal",
+            config,
+            bot,
+        )
+        if not lock:
+            return
+
+        try:
+            if not is_super_admin(interaction.user.id):
+                return await interaction.response.send_message("Accès refusé", ephemeral=True)
+
+            try:
+                gid_int = int(self.guild_id.value.strip())
+            except ValueError:
+                return await interaction.response.send_message(
+                    "❌ ID de serveur invalide.", ephemeral=True
+                )
+
+            gid = str(gid_int)
+            if gid not in config.get("guilds", {}):
+                return await interaction.response.send_message(
+                    "❌ Ce serveur n'est pas autorisé.", ephemeral=True
+                )
+
+            guild = bot.get_guild(gid_int)
+            config["guilds"].pop(gid, None)
+            cfg_ctrl.save()
+
+            if guild:
+                try:
+                    await guild.leave()
+                except Exception as e:
+                    return await interaction.response.send_message(
+                        f"❌ Erreur en quittant le serveur : {e}", ephemeral=True
+                    )
+
+            embed = discord.Embed(
+                title="✅ Serveur désautorisé",
+                description=f"Le serveur `{gid}` a été désautorisé.",
+                color=discord.Color.orange(),
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        finally:
+            lock.release()
+            abuse_manager.clear_modal_open(guild_id, str(interaction.user.id))
+
+
+class ServerPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Autoriser un serveur",
+        style=discord.ButtonStyle.success,
+        custom_id="server_panel_authorize",
+    )
+    async def authorize_server(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not is_super_admin(interaction.user.id):
+            return await interaction.response.send_message("Accès refusé", ephemeral=True)
+
+        guild_id = str(interaction.guild.id) if interaction.guild else "global"
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "server_panel_authorize_button",
+            config,
+            bot,
+            modal_open=True,
+        ):
+            return
+
+        await interaction.response.send_modal(ServerAuthorizeModal())
+
+    @discord.ui.button(
+        label="Désautoriser un serveur",
+        style=discord.ButtonStyle.danger,
+        custom_id="server_panel_unauthorize",
+    )
+    async def unauthorize_server(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not is_super_admin(interaction.user.id):
+            return await interaction.response.send_message("Accès refusé", ephemeral=True)
+
+        guild_id = str(interaction.guild.id) if interaction.guild else "global"
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "server_panel_unauthorize_button",
+            config,
+            bot,
+            modal_open=True,
+        ):
+            return
+
+        await interaction.response.send_modal(ServerUnauthorizeModal())
+
+
+@bot.tree.command(name="server_panel", description="Ouvre le panneau d'autorisation de serveurs")
 @app_commands.check(command_enabled_check)
-async def server_unauthorize_cmd(interaction: discord.Interaction, guild_id: str):
-    if not is_bot_owner(interaction.user.id):
+async def server_panel_cmd(interaction: discord.Interaction):
+    if not is_super_admin(interaction.user.id):
+        return await interaction.response.send_message("Accès refusé", ephemeral=True)
+
+    guild_id = str(interaction.guild.id) if interaction.guild else "global"
+    if not await abuse_manager.start_action(
+        interaction,
+        guild_id,
+        "server_panel_command",
+        config,
+        bot,
+    ):
+        return
+
+    embed = discord.Embed(
+        title="🔐 Panneau d'autorisation des serveurs",
+        description=(
+            "Utilise les boutons ci-dessous pour autoriser ou désautoriser un serveur.\n"
+            "Seul l'utilisateur autorisé peut ouvrir ce panneau."
+        ),
+        color=THEME,
+    )
+    embed.set_footer(text=f"Accès réservé à l'utilisateur {SUPER_ADMIN_ID}")
+
+    await interaction.response.send_message(embed=embed, view=ServerPanelView(), ephemeral=True)
+
+
+def get_logs_settings(gid: str, guild: discord.Guild | None) -> dict:
+    gcfg = ensure_guild_entry(config, gid, guild)
+    return gcfg.setdefault(
+        "logs",
+        {
+            "channel_id": None,
+            "log_commands": False,
+            "log_server_auth": False,
+            "log_errors": False,
+            "log_admin_actions": False,
+        },
+    )
+
+
+def build_logs_panel_embed(gid: str, guild: discord.Guild) -> discord.Embed:
+    logs = get_logs_settings(gid, guild)
+    channel = None
+    if logs.get("channel_id"):
+        channel = bot.get_channel(int(logs["channel_id"])) or guild.get_channel(int(logs["channel_id"]))
+
+    channel_text = channel.mention if channel else "Aucun salon de logs configuré"
+    embed = discord.Embed(
+        title="📝 Panneau de logs du serveur",
+        description=(
+            "Gère les logs de ce serveur avec le panneau interactif ci-dessous.\n"
+            "Seul le super admin peut utiliser cette commande."
+        ),
+        color=THEME,
+    )
+    embed.add_field(name="Salon de logs actuel", value=channel_text, inline=False)
+    embed.add_field(
+        name="Types de logs activés",
+        value=(
+            f"• Commandes : {'✅' if logs.get('log_commands') else '❌'}\n"
+            f"• Autorisations de serveurs : {'✅' if logs.get('log_server_auth') else '❌'}\n"
+            f"• Erreurs du bot : {'✅' if logs.get('log_errors') else '❌'}\n"
+            f"• Actions admin : {'✅' if logs.get('log_admin_actions') else '❌'}"
+        ),
+        inline=False,
+    )
+    embed.set_footer(text=f"Serveur {guild.name} • ID {gid}")
+    return embed
+
+
+class LogsPanelView(discord.ui.View):
+    def __init__(self, guild: discord.Guild, gid: str):
+        super().__init__(timeout=None)
+        self.guild = guild
+        self.gid = gid
+        self.logs = get_logs_settings(gid, guild)
+
+        self.channel_select = discord.ui.ChannelSelect(
+            placeholder="Choisir un salon texte pour les logs",
+            channel_types=[discord.ChannelType.text],
+            min_values=1,
+            max_values=1,
+            custom_id="logs_panel_channel_select",
+        )
+        self.channel_select.callback = self.set_log_channel
+        self.add_item(self.channel_select)
+
+    async def ensure_super_admin(self, interaction: discord.Interaction) -> bool:
+        if not is_super_admin(interaction.user.id):
+            await interaction.response.send_message("Accès refusé", ephemeral=True)
+            return False
+        return True
+
+    async def update_message(self, interaction: discord.Interaction):
+        await interaction.response.edit_message(
+            embed=build_logs_panel_embed(self.gid, self.guild),
+            view=self,
+        )
+
+    @discord.ui.button(
+        label="Créer salon logs",
+        style=discord.ButtonStyle.primary,
+        custom_id="logs_panel_create_channel",
+        row=1,
+    )
+    async def create_logs_channel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_create_channel",
+            config,
+            bot,
+        ):
+            return
+
+        channel = next(
+            (c for c in self.guild.text_channels if c.name.lower() == "logs-bot"),
+            None,
+        )
+        if not channel:
+            try:
+                channel = await self.guild.create_text_channel("logs-bot")
+            except discord.Forbidden:
+                return await interaction.response.send_message(
+                    "❌ Le bot n'a pas la permission de créer un salon.",
+                    ephemeral=True,
+                )
+            except Exception as e:
+                return await interaction.response.send_message(
+                    f"❌ Impossible de créer le salon : {e}", ephemeral=True
+                )
+
+        self.logs["channel_id"] = int(channel.id)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+    @discord.ui.button(
+        label="Commandes",
+        style=discord.ButtonStyle.secondary,
+        custom_id="logs_panel_toggle_commands",
+        row=1,
+    )
+    async def toggle_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_toggle_commands",
+            config,
+            bot,
+        ):
+            return
+
+        self.logs["log_commands"] = not self.logs.get("log_commands", False)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+    @discord.ui.button(
+        label="Serveur auth",
+        style=discord.ButtonStyle.secondary,
+        custom_id="logs_panel_toggle_server_auth",
+        row=1,
+    )
+    async def toggle_server_auth(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_toggle_server_auth",
+            config,
+            bot,
+        ):
+            return
+
+        self.logs["log_server_auth"] = not self.logs.get("log_server_auth", False)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+    @discord.ui.button(
+        label="Erreurs",
+        style=discord.ButtonStyle.secondary,
+        custom_id="logs_panel_toggle_errors",
+        row=2,
+    )
+    async def toggle_errors(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_toggle_errors",
+            config,
+            bot,
+        ):
+            return
+
+        self.logs["log_errors"] = not self.logs.get("log_errors", False)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+    @discord.ui.button(
+        label="Actions admin",
+        style=discord.ButtonStyle.secondary,
+        custom_id="logs_panel_toggle_admin_actions",
+        row=2,
+    )
+    async def toggle_admin_actions(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_toggle_admin_actions",
+            config,
+            bot,
+        ):
+            return
+
+        self.logs["log_admin_actions"] = not self.logs.get("log_admin_actions", False)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+    async def set_log_channel(self, interaction: discord.Interaction):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_select_channel",
+            config,
+            bot,
+        ):
+            return
+
+        selected = self.channel_select.values[0]
+        self.logs["channel_id"] = int(selected.id)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+
+@bot.tree.command(name="logs_panel", description="Ouvre le panneau de gestion des logs du serveur")
+@app_commands.check(command_enabled_check)
+async def logs_panel_cmd(interaction: discord.Interaction):
+    if not interaction.guild:
         return await interaction.response.send_message(
-            "❌ Cette commande est réservée au propriétaire du bot.", ephemeral=True
+            "Cette commande doit être utilisée depuis un serveur.", ephemeral=True
         )
-    
-    try:
-        gid_int = int(guild_id)
-    except ValueError:
-        return await interaction.response.send_message(
-            "❌ ID de serveur invalide.", ephemeral=True
-        )
-    
-    guild = bot.get_guild(gid_int)
-    if not guild:
-        return await interaction.response.send_message(
-            "❌ Le bot n'est pas sur ce serveur.", ephemeral=True
-        )
-    
-    gid = str(guild_id)
-    if gid not in config.get("guilds", {}):
-        return await interaction.response.send_message(
-            f"❌ Ce serveur n'est pas autorisé.", ephemeral=True
-        )
-    
-    # Supprimer de la config
-    config["guilds"].pop(gid, None)
-    cfg_ctrl.save()
-    
-    # Quitter le serveur
-    try:
-        await guild.leave()
-        embed = discord.Embed(
-            title="✅ Serveur désautorisé",
-            description=f"Le serveur **{guild.name}** (`{gid}`) a été désautorisé et le bot l'a quitté.",
-            color=discord.Color.orange(),
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-    except Exception as e:
-        await interaction.response.send_message(
-            f"❌ Erreur en quittant le serveur : {e}", ephemeral=True
-        )
+    if not is_super_admin(interaction.user.id):
+        return await interaction.response.send_message("Accès refusé", ephemeral=True)
+
+    guild_id = str(interaction.guild.id)
+    if not await abuse_manager.start_action(
+        interaction,
+        guild_id,
+        "logs_panel_command",
+        config,
+        bot,
+    ):
+        return
+
+    ensure_guild_entry(config, guild_id, interaction.guild)
+    await interaction.response.send_message(
+        embed=build_logs_panel_embed(guild_id, interaction.guild),
+        view=LogsPanelView(interaction.guild, guild_id),
+        ephemeral=True,
+    )
 
 
 @bot.tree.command(name="server_list", description="Liste tous les serveurs autorisés")
@@ -2054,4 +2426,13 @@ def _discord_token_from_env() -> str:
 
 
 if __name__ == "__main__":
-    bot.run(_discord_token_from_env())
+
+    # Démarrage dashboard web
+    Thread(
+        target=start_dashboard,
+        daemon=True
+    ).start()
+
+
+    # Démarrage bot Discord
+    bot.run(TOKEN)

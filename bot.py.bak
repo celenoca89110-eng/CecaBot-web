@@ -1,7 +1,3 @@
-# ==========================
-# IMPORTS SYSTEME
-# ==========================
-
 import asyncio
 import io
 import json
@@ -9,422 +5,269 @@ import os
 import re
 import time
 
-from pathlib import Path
-from typing import Optional
-from threading import Thread
-
-
-# ==========================
-# ENVIRONMENT
-# ==========================
+import aiohttp
 
 try:
     from dotenv import load_dotenv
 except ImportError:
-    load_dotenv = None
-
-
-BASE_DIR = Path(__file__).resolve().parent
-
-
-if load_dotenv:
-    load_dotenv(
-        BASE_DIR / ".env",
-        encoding="utf-8-sig",
-        override=True
-    )
-else:
-    print("⚠️ python-dotenv absent")
-
-
-# ==========================
-# DASHBOARD FLASK
-# ==========================
-
-try:
-    from app import app
-
-except ImportError as e:
-    print(f"⚠️ Dashboard Flask désactivé : {e}")
-    app = None
-
-
-
-def start_dashboard():
-
-    if app is None:
-        return
-
-    port = int(
-        os.getenv(
-            "PORT",
-            "3000"
-        )
-    )
-
-    app.run(
-        host="0.0.0.0",
-        port=port,
-        debug=False,
-        use_reloader=False
-    )
-
-
-
-def run_dashboard():
-
-    if app is None:
-        print("⚠️ Dashboard non lancé")
-        return
-
-
-    Thread(
-        target=start_dashboard,
-        daemon=True,
-        name="FlaskDashboard"
-    ).start()
-
-
-    print(
-        f"🌐 Dashboard lancé sur le port {os.getenv('PORT','3000')}"
-    )
-
-
-
-# ==========================
-# DISCORD
-# ==========================
+    load_dotenv = None  # type: ignore[assignment,misc]
 
 import discord
-
 from discord import app_commands
 from discord.ext import commands
 
-
-
-# ==========================
-# PROJECT MODULES
-# ==========================
-
 import store
 
-
-
-# ==========================
-# OPTIONAL MODULES
-# ==========================
-
-
-try:
-    from anti_abuse import abuse_manager
-
-except Exception as e:
-
-    print(
-        f"⚠️ Anti abuse désactivé : {e}"
-    )
-
-    abuse_manager = None
-
-
-
-try:
-
-    from config_ui import (
-        ConfigController,
-        ConfigRootView,
-        OwnerPanelView,
-        ConfigDashboardView,
-        can_use_bot_panel,
-        ensure_guild_entry,
-        ticket_client_overwrite,
-    )
-
-
-except Exception as e:
-
-    print(
-        f"⚠️ Config UI désactivée : {e}"
-    )
-
-    ConfigController = None
-    ConfigRootView = None
-    OwnerPanelView = None
-    ConfigDashboardView = None
-    can_use_bot_panel = None
-    ensure_guild_entry = None
-    ticket_client_overwrite = None
-
-
-
-try:
-
-    from security_panel import setup_security_panel
-
-except Exception as e:
-
-    print(
-        f"⚠️ Security panel absent : {e}"
-    )
-
-    setup_security_panel = None
-
-
-
-try:
-
-    from modules.logs.logger import AdvancedLogger
-
-
-except Exception as e:
-
-    print(
-        f"⚠️ Logger avancé absent : {e}"
-    )
-
-    AdvancedLogger = None
-
-
-
-# ==========================
-# PATHS
-# ==========================
-
-
-CONFIG_FILE = BASE_DIR / "config.json"
-
-DATABASE_FILE = BASE_DIR / "ticketmp.db"
-
-TRANSCRIPTS_DIR = BASE_DIR / "transcripts"
-
-INVITE_CONFIG_FILE = BASE_DIR / "invite_config.json"
-
-PANELS_FILE = BASE_DIR / "panels.json"
-
-
-
-TRANSCRIPTS_DIR.mkdir(
-    exist_ok=True
+from anti_abuse import abuse_manager
+from config_ui import (
+    ConfigController,
+    ConfigRootView,
+    OwnerPanelView,
+    ConfigDashboardView,
+    can_use_bot_panel,
+    ensure_guild_entry,
+    ticket_client_overwrite,
 )
+from security_panel import setup_security_panel
 
-
-
-print("==============================")
-print("🚀 Chargement TicketMP")
-print(f"📁 Dossier : {BASE_DIR}")
-print("==============================")
-
-
-
-# ==========================
-# DATABASE
-# ==========================
+# =========================
+# CHEMINS & CONFIG FICHIERS
+# =========================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if load_dotenv:
+    _env_path = os.path.join(BASE_DIR, ".env")
+    load_dotenv(_env_path, encoding="utf-8-sig", override=True)
+else:
+    print(
+        "⚠️ Module « python-dotenv » introuvable — le fichier .env ne sera pas chargé.\n"
+        "   Installe-le avec : python -m pip install python-dotenv\n"
+        "   (ou : pip install -r requirements.txt)"
+    )
+CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
+TRANSCRIPTS_DIR = os.path.join(BASE_DIR, "transcripts")
+INVITE_CONFIG_FILE = os.path.join(BASE_DIR, "invite_config.json")
+PANELS_FILE = os.path.join(BASE_DIR, "panels.json")
 
 store.init_db()
 
 
-
-# ==========================
-# CONFIG LOAD
-# ==========================
-
-
-def load_cfg_file(path):
-
+def load_cfg_file(path: str) -> dict:
     try:
-
-        if path.exists():
-
-            with open(
-                path,
-                "r",
-                encoding="utf-8"
-            ) as f:
-
-                data = json.load(f)
-
-                return (
-                    data
-                    if isinstance(data,dict)
-                    else {}
-                )
-
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if not content:
+                    return {}
+                return json.loads(content)
     except Exception as e:
-
-        print(
-            f"❌ Erreur config : {e}"
-        )
-
-
+        print(f"❌ ERREUR LOAD {path}:", e)
     return {}
 
 
-
-def load_panels():
-
+def load_invite_config() -> dict:
+    """Charge la configuration des invitations."""
+    default_config = {
+        "configurations": {}
+    }
     try:
-
-        if PANELS_FILE.exists():
-
-            with open(
-                PANELS_FILE,
-                "r",
-                encoding="utf-8"
-            ) as f:
-
-                return json.load(f)
-
+        if os.path.isfile(INVITE_CONFIG_FILE):
+            with open(INVITE_CONFIG_FILE, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if not content:
+                    return default_config
+                loaded = json.loads(content)
+                default_config.update(loaded)
+                return default_config
     except Exception as e:
-
-        print(
-            f"❌ Erreur panels : {e}"
-        )
+        print(f"❌ ERREUR LOAD {INVITE_CONFIG_FILE}:", e)
+    return default_config
 
 
-    return {}
-
-
-
-def save_panels(data):
-
+def save_invite_config(config_data: dict) -> bool:
+    """Sauvegarde la configuration des invitations."""
     try:
-
-        with open(
-            PANELS_FILE,
-            "w",
-            encoding="utf-8"
-        ) as f:
-
-            json.dump(
-                data,
-                f,
-                indent=4,
-                ensure_ascii=False
-            )
-
+        with open(INVITE_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config_data, f, indent=2, ensure_ascii=False)
         return True
-
-
     except Exception as e:
-
-        print(
-            f"❌ Save panels : {e}"
-        )
-
+        print(f"❌ ERREUR SAVE {INVITE_CONFIG_FILE}:", e)
         return False
 
 
+def load_panels() -> dict:
+    """Charge la configuration des panels."""
+    try:
+        if os.path.isfile(PANELS_FILE):
+            with open(PANELS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"❌ ERREUR LOAD {PANELS_FILE}:", e)
+    return {}
 
-# ==========================
-# CONFIG GLOBAL
-# ==========================
+
+def save_panels(panels_data: dict) -> bool:
+    """Sauvegarde la configuration des panels."""
+    try:
+        with open(PANELS_FILE, "w", encoding="utf-8") as f:
+            json.dump(panels_data, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"❌ ERREUR SAVE {PANELS_FILE}:", e)
+        return False
 
 
-config = load_cfg_file(CONFIG_FILE)
+def get_invite_config_by_name(config_name: str) -> dict | None:
+    """Récupère une configuration spécifique par son nom."""
+    config_data = load_invite_config()
+    configurations = config_data.get("configurations", {})
+    return configurations.get(config_name)
 
-panels = load_panels()
+
+def generate_invite_url(client_id: str, permissions: str, recommended_guild_id: str = "") -> str:
+    """Génère l'URL d'invitation OAuth2."""
+    base_url = "https://discord.com/oauth2/authorize"
+    invite_url = f"{base_url}?client_id={client_id}&permissions={permissions}&scope=bot%20applications.commands"
+    if recommended_guild_id:
+        invite_url += f"&guild_id={recommended_guild_id}"
+    return invite_url
 
 
-
+config: dict = load_cfg_file(CONFIG_FILE)
+panels: dict = load_panels()  # guild_id -> list of panel data
 THEME = discord.Color.blurple()
-
-COLOR_RELAY_USER = discord.Color.from_rgb(
-    88,
-    101,
-    242
-)
-
-
-COLOR_RELAY_STAFF = discord.Color.from_rgb(
-    67,
-    181,
-    129
-)
+COLOR_RELAY_USER = discord.Color.from_rgb(88, 101, 242)
+COLOR_RELAY_STAFF = discord.Color.from_rgb(67, 181, 129)
+cooldown: dict[str, float] = {}
+first_messages: dict[str, str] = {}
+user_guild_map: dict[str, str] = {}  # user_id -> guild_id mapping for DM interactions
+panel_dm_cooldown: dict[str, float] = {}  # user_id -> timestamp of last panel instructions DM
 
 
-
-cooldown = {}
-
-first_messages = {}
-
-user_guild_map = {}
-
-panel_dm_cooldown = {}
-
-
-# ==========================
-# CLASS BOT DISCORD
-# ==========================
-
-class TicketBot(commands.Bot):
-    def __init__(self, *, command_prefix, intents):
-        super().__init__(
-            command_prefix=command_prefix,
-            intents=intents
-        )
-
-    async def setup_hook(self):
-        print("🔄 Synchronisation des commandes slash...")
-
-        try:
-            synced = await self.tree.sync()
-            print(f"✅ {len(synced)} commandes synchronisées")
-
-        except Exception as e:
-            print(f"❌ Erreur sync commandes : {e}")
-
-
-    async def on_ready(self):
-        print("==============================")
-        print(f"🤖 Bot connecté : {self.user}")
-        print(f"🆔 ID : {self.user.id}")
-        print(f"🌐 Serveurs : {len(self.guilds)}")
-        print("==============================")
-
-
-# ==========================
-# DISCORD BOT
-# ==========================
-
-
-intents = discord.Intents.all()
-
-
-
-bot = TicketBot(
-    command_prefix="!",
-    intents=intents
-)
-
-
-
-# ==========================
-# START DASHBOARD
-# ==========================
-
-
-run_dashboard()
-
-
-
-# ==========================
-# LOGGER
-# ==========================
-
-if AdvancedLogger:
-
-    logs_manager = AdvancedLogger(
-        bot,
-        config
+def channel_name_slug(username: str, prefix: str) -> str:
+    slug = "".join(
+        c if c.isalnum() or c in "_-" else "-" for c in (username or "user").lower()
     )
+    slug = re.sub(r"-+", "-", slug).strip("-") or "user"
+    return f"{prefix}-{slug}"[:95]
 
-    print("✅ Logger avancé activé")
 
-else:
+def can_staff_close(member: discord.Member, cfg: dict | None) -> bool:
+    if is_super_admin(member.id):
+        return True
+    if not cfg:
+        return False
+    admin_roles = cfg.get("admin_roles") or []
+    for rid in admin_roles:
+        role = member.guild.get_role(int(rid))
+        if role and role in member.roles:
+            return True
+    return False
 
-    logs_manager = None
 
-    print("⚠️ Logger avancé désactivé")
+SUPER_ADMIN_ID = 1112038418629808148
+
+def is_super_admin(user_id: int) -> bool:
+    """Vérifie si l'utilisateur est le super admin (droits absolus sur tous les serveurs)."""
+    return user_id == SUPER_ADMIN_ID
+
+def is_bot_owner(user_id: int) -> bool:
+    """Vérifie si l'utilisateur est le propriétaire du bot."""
+    return str(user_id) == config.get("bot_owner_id", "") or is_super_admin(user_id)
+
+
+def is_whitelisted_admin(user_id: int) -> bool:
+    """Vérifie si l'utilisateur est dans la whitelist des admins."""
+    whitelisted = config.get("whitelisted_admins", [])
+    return str(user_id) in whitelisted
+
+
+def has_bot_permission(user_id: int) -> bool:
+    """Vérifie si l'utilisateur a les permissions principales du bot (owner ou whitelist)."""
+    return is_bot_owner(user_id) or is_whitelisted_admin(user_id) or is_super_admin(user_id)
+
+
+def is_command_disabled(command_name: str) -> bool:
+    """Vérifie si une commande est désactivée dans la configuration."""
+    disabled = config.get("disabled_commands", [])
+    return command_name in disabled
+
+
+def is_guild_owner(member: discord.Member) -> bool:
+    """Vérifie si l'utilisateur est le propriétaire du serveur."""
+    return member.guild.owner_id == member.id
+
+
+def is_guild_admin(member: discord.Member, cfg: dict | None) -> bool:
+    """Vérifie si l'utilisateur est admin du serveur (rôles admin ou permissions Discord)."""
+    if is_super_admin(member.id):
+        return True
+    
+    if not cfg:
+        return False
+    
+    # Vérifier les rôles admin configurés
+    admin_roles = cfg.get("admin_roles") or []
+    for rid in admin_roles:
+        role = member.guild.get_role(int(rid))
+        if role and role in member.roles:
+            return True
+    
+    # Vérifier les permissions Discord (manage_guild)
+    if member.guild_permissions.manage_guild:
+        return True
+    
+    return False
+
+
+def is_guild_mod(member: discord.Member, cfg: dict | None) -> bool:
+    """Vérifie si l'utilisateur est modérateur du serveur (rôles mod)."""
+    if is_super_admin(member.id):
+        return True
+    
+    if not cfg:
+        return False
+    
+    mod_roles = cfg.get("mod_roles") or []
+    for rid in mod_roles:
+        role = member.guild.get_role(int(rid))
+        if role and role in member.roles:
+            return True
+    
+    return False
+
+
+async def command_enabled_check(interaction: discord.Interaction) -> bool:
+    """Check Discord : refuse l'exécution si la commande est désactivée."""
+    command_name = interaction.command.name if interaction.command else None
+    if command_name and is_command_disabled(command_name):
+        await interaction.response.send_message(
+            f"❌ Cette commande est désactivée par l'administrateur.",
+            ephemeral=True
+        )
+        return False
+    return True
+
+
+async def build_transcript(channel: discord.TextChannel, limit: int = 450) -> str:
+    lines = [
+        f"Transcript du salon #{channel.name}",
+        f"ID salon : {channel.id} | Serveur : {channel.guild.name} ({channel.guild.id})",
+        "",
+    ]
+    async for m in channel.history(limit=limit, oldest_first=True):
+        ts = m.created_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+        author = f"{m.author} ({m.author.id})"
+        chunks: list[str] = []
+        if m.content:
+            chunks.append(m.content)
+        for a in m.attachments:
+            chunks.append(f"[fichier: {a.filename} | {a.url}]")
+        for e in m.embeds:
+            et = e.title or e.description or "embed"
+            chunks.append(f"[embed: {et[:240]}]")
+        body = " ".join(chunks) if chunks else "(sans contenu texte)"
+        lines.append(f"[{ts}] {author}: {body}")
+    return "\n".join(lines)
 
 
 async def get_valid_panels_for_guild(guild_id: str, member: discord.Member | None = None) -> list[dict]:
@@ -1222,7 +1065,6 @@ class TicketBot(commands.Bot):
 
 intents = discord.Intents.all()
 bot = TicketBot(command_prefix="!", intents=intents)
-run_dashboard()
 
 cfg_ctrl = ConfigController(bot, config, CONFIG_FILE, load_cfg_file)
 setup_security_panel(bot, config, cfg_ctrl, command_enabled_check)
@@ -2478,12 +2320,6 @@ async def on_member_join(member: discord.Member):
     except Exception:
         pass
 
-    # Log l'arrivée du membre si activé
-    try:
-        await logs_manager.log_member_join(member)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_member_join: {e}")
-
 
 async def _get_member_avatar_url(member: discord.Member) -> str | None:
     try:
@@ -2526,34 +2362,6 @@ async def on_member_remove(member: discord.Member):
                 await ch.send(content=member.mention, embed=emb)
     except Exception:
         pass
-
-    # Log le départ du membre si activé
-    try:
-        await logs_manager.log_member_leave(member)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_member_leave: {e}")
-
-
-@bot.event
-async def on_member_update(before: discord.Member, after: discord.Member):
-    """Log les changements de rôles si activé."""
-    if not after.guild:
-        return
-    try:
-        await logs_manager.log_role_change(before, after)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_role_change: {e}")
-
-
-@bot.event
-async def on_app_command_completion(interaction: discord.Interaction, command: discord.app_commands.Command):
-    """Log l'utilisation de commandes si activé."""
-    if not interaction.guild:
-        return
-    try:
-        await logs_manager.log_command_used(interaction, command.name)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_command_used: {e}")
 
 
 @bot.event
@@ -2638,28 +2446,6 @@ async def on_message(message: discord.Message):
                     await message.channel.send(embed=embed)
 
     await bot.process_commands(message)
-
-
-@bot.event
-async def on_message_delete(message: discord.Message):
-    """Log la suppression de messages si activé."""
-    if not message.guild:
-        return
-    try:
-        await logs_manager.log_message_delete(message)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_message_delete: {e}")
-
-
-@bot.event
-async def on_message_edit(before: discord.Message, after: discord.Message):
-    """Log la modification de messages si activé."""
-    if not after.guild:
-        return
-    try:
-        await logs_manager.log_message_edit(before, after)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_message_edit: {e}")
 
 
 def _discord_token_from_env() -> str:

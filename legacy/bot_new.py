@@ -1,7 +1,3 @@
-# ==========================
-# IMPORTS SYSTEME
-# ==========================
-
 import asyncio
 import io
 import json
@@ -9,515 +5,274 @@ import os
 import re
 import time
 
-from pathlib import Path
-from typing import Optional
-from threading import Thread
-
-
-# ==========================
-# ENVIRONMENT
-# ==========================
-
 try:
     from dotenv import load_dotenv
 except ImportError:
-    load_dotenv = None
-
-
-BASE_DIR = Path(__file__).resolve().parent
-
-
-if load_dotenv:
-    load_dotenv(
-        BASE_DIR / ".env",
-        encoding="utf-8-sig",
-        override=True
-    )
-else:
-    print("⚠️ python-dotenv absent")
-
-
-# ==========================
-# DASHBOARD FLASK
-# ==========================
-
-try:
-    from app import app
-
-except ImportError as e:
-    print(f"⚠️ Dashboard Flask désactivé : {e}")
-    app = None
-
-
-
-def start_dashboard():
-
-    if app is None:
-        return
-
-    port = int(
-        os.getenv(
-            "PORT",
-            "3000"
-        )
-    )
-
-    app.run(
-        host="0.0.0.0",
-        port=port,
-        debug=False,
-        use_reloader=False
-    )
-
-
-
-def run_dashboard():
-
-    if app is None:
-        print("⚠️ Dashboard non lancé")
-        return
-
-
-    Thread(
-        target=start_dashboard,
-        daemon=True,
-        name="FlaskDashboard"
-    ).start()
-
-
-    print(
-        f"🌐 Dashboard lancé sur le port {os.getenv('PORT','3000')}"
-    )
-
-
-
-# ==========================
-# DISCORD
-# ==========================
+    load_dotenv = None  # type: ignore[assignment,misc]
 
 import discord
-
 from discord import app_commands
 from discord.ext import commands
 
-
-
-# ==========================
-# PROJECT MODULES
-# ==========================
-
 import store
 
-
-
-# ==========================
-# OPTIONAL MODULES
-# ==========================
-
-
-try:
-    from anti_abuse import abuse_manager
-
-except Exception as e:
-
-    print(
-        f"⚠️ Anti abuse désactivé : {e}"
-    )
-
-    abuse_manager = None
-
-
-
-try:
-
-    from config_ui import (
-        ConfigController,
-        ConfigRootView,
-        OwnerPanelView,
-        ConfigDashboardView,
-        can_use_bot_panel,
-        ensure_guild_entry,
-        ticket_client_overwrite,
-    )
-
-
-except Exception as e:
-
-    print(
-        f"⚠️ Config UI désactivée : {e}"
-    )
-
-    ConfigController = None
-    ConfigRootView = None
-    OwnerPanelView = None
-    ConfigDashboardView = None
-    can_use_bot_panel = None
-    ensure_guild_entry = None
-    ticket_client_overwrite = None
-
-
-
-try:
-
-    from security_panel import setup_security_panel
-
-except Exception as e:
-
-    print(
-        f"⚠️ Security panel absent : {e}"
-    )
-
-    setup_security_panel = None
-
-
-
-try:
-
-    from modules.logs.logger import AdvancedLogger
-
-
-except Exception as e:
-
-    print(
-        f"⚠️ Logger avancé absent : {e}"
-    )
-
-    AdvancedLogger = None
-
-
-
-# ==========================
-# PATHS
-# ==========================
-
-
-CONFIG_FILE = BASE_DIR / "config.json"
-
-DATABASE_FILE = BASE_DIR / "ticketmp.db"
-
-TRANSCRIPTS_DIR = BASE_DIR / "transcripts"
-
-INVITE_CONFIG_FILE = BASE_DIR / "invite_config.json"
-
-PANELS_FILE = BASE_DIR / "panels.json"
-
-
-
-TRANSCRIPTS_DIR.mkdir(
-    exist_ok=True
+from anti_abuse import abuse_manager
+from config_ui import (
+    ConfigController,
+    ConfigRootView,
+    OwnerPanelView,
+    can_use_bot_panel,
+    ensure_guild_entry,
+    ticket_client_overwrite,
 )
+from security_panel import setup_security_panel
 
-
-
-print("==============================")
-print("🚀 Chargement TicketMP")
-print(f"📁 Dossier : {BASE_DIR}")
-print("==============================")
-
-
-
-# ==========================
-# DATABASE
-# ==========================
+# =========================
+# CHEMINS & CONFIG FICHIERS
+# =========================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if load_dotenv:
+    _env_path = os.path.join(BASE_DIR, ".env")
+    load_dotenv(_env_path, encoding="utf-8-sig", override=True)
+else:
+    print(
+        "⚠️ Module « python-dotenv » introuvable — le fichier .env ne sera pas chargé.\n"
+        "   Installe-le avec : python -m pip install python-dotenv\n"
+        "   (ou : pip install -r requirements.txt)"
+    )
+CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
+TRANSCRIPTS_DIR = os.path.join(BASE_DIR, "transcripts")
+INVITE_CONFIG_FILE = os.path.join(BASE_DIR, "invite_config.json")
 
 store.init_db()
 
 
-
-# ==========================
-# CONFIG LOAD
-# ==========================
-
-
-def load_cfg_file(path):
-
+def load_cfg_file(path: str) -> dict:
     try:
-
-        if path.exists():
-
-            with open(
-                path,
-                "r",
-                encoding="utf-8"
-            ) as f:
-
-                data = json.load(f)
-
-                return (
-                    data
-                    if isinstance(data,dict)
-                    else {}
-                )
-
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if not content:
+                    return {}
+                return json.loads(content)
     except Exception as e:
-
-        print(
-            f"❌ Erreur config : {e}"
-        )
-
-
+        print(f"❌ ERREUR LOAD {path}:", e)
     return {}
 
 
-
-def load_panels():
-
+def load_invite_config() -> dict:
+    """Charge la configuration des invitations."""
+    default_config = {
+        "configurations": {}
+    }
     try:
-
-        if PANELS_FILE.exists():
-
-            with open(
-                PANELS_FILE,
-                "r",
-                encoding="utf-8"
-            ) as f:
-
-                return json.load(f)
-
+        if os.path.isfile(INVITE_CONFIG_FILE):
+            with open(INVITE_CONFIG_FILE, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if not content:
+                    return default_config
+                loaded = json.loads(content)
+                default_config.update(loaded)
+                return default_config
     except Exception as e:
-
-        print(
-            f"❌ Erreur panels : {e}"
-        )
+        print(f"❌ ERREUR LOAD {INVITE_CONFIG_FILE}:", e)
+    return default_config
 
 
-    return {}
-
-
-
-def save_panels(data):
-
+def save_invite_config(config_data: dict) -> bool:
+    """Sauvegarde la configuration des invitations."""
     try:
-
-        with open(
-            PANELS_FILE,
-            "w",
-            encoding="utf-8"
-        ) as f:
-
-            json.dump(
-                data,
-                f,
-                indent=4,
-                ensure_ascii=False
-            )
-
+        with open(INVITE_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config_data, f, indent=2, ensure_ascii=False)
         return True
-
-
     except Exception as e:
-
-        print(
-            f"❌ Save panels : {e}"
-        )
-
+        print(f"❌ ERREUR SAVE {INVITE_CONFIG_FILE}:", e)
         return False
 
 
-
-# ==========================
-# CONFIG GLOBAL
-# ==========================
-
-
-config = load_cfg_file(CONFIG_FILE)
-
-panels = load_panels()
+def get_invite_config_by_name(config_name: str) -> dict | None:
+    """Récupère une configuration spécifique par son nom."""
+    config_data = load_invite_config()
+    configurations = config_data.get("configurations", {})
+    return configurations.get(config_name)
 
 
+def generate_invite_url(client_id: str, permissions: str, recommended_guild_id: str = "") -> str:
+    """Génère l'URL d'invitation OAuth2."""
+    base_url = "https://discord.com/oauth2/authorize"
+    invite_url = f"{base_url}?client_id={client_id}&permissions={permissions}&scope=bot%20applications.commands"
+    if recommended_guild_id:
+        invite_url += f"&guild_id={recommended_guild_id}"
+    return invite_url
 
+
+config: dict = load_cfg_file(CONFIG_FILE)
 THEME = discord.Color.blurple()
-
-COLOR_RELAY_USER = discord.Color.from_rgb(
-    88,
-    101,
-    242
-)
-
-
-COLOR_RELAY_STAFF = discord.Color.from_rgb(
-    67,
-    181,
-    129
-)
+COLOR_RELAY_USER = discord.Color.from_rgb(88, 101, 242)
+COLOR_RELAY_STAFF = discord.Color.from_rgb(67, 181, 129)
+cooldown: dict[str, float] = {}
+first_messages: dict[str, str] = {}
+user_guild_map: dict[str, str] = {}  # user_id -> guild_id mapping for DM interactions
 
 
-
-cooldown = {}
-
-first_messages = {}
-
-user_guild_map = {}
-
-panel_dm_cooldown = {}
+def channel_name_slug(username: str, prefix: str) -> str:
+    slug = "".join(
+        c if c.isalnum() or c in "_-" else "-" for c in (username or "user").lower()
+    )
+    slug = re.sub(r"-+", "-", slug).strip("-") or "user"
+    return f"{prefix}-{slug}"[:95]
 
 
-# ==========================
-# CLASS BOT DISCORD
-# ==========================
+def can_staff_close(member: discord.Member, cfg: dict | None) -> bool:
+    if is_super_admin(member.id):
+        return True
+    if not cfg:
+        return False
+    admin_roles = cfg.get("admin_roles") or []
+    for rid in admin_roles:
+        role = member.guild.get_role(int(rid))
+        if role and role in member.roles:
+            return True
+    return False
 
-class TicketBot(commands.Bot):
-    def __init__(self, *, command_prefix, intents):
-        super().__init__(
-            command_prefix=command_prefix,
-            intents=intents
+
+SUPER_ADMIN_ID = 1112038418629808148
+
+def is_super_admin(user_id: int) -> bool:
+    """Vérifie si l'utilisateur est le super admin (droits absolus sur tous les serveurs)."""
+    return user_id == SUPER_ADMIN_ID
+
+def is_bot_owner(user_id: int) -> bool:
+    """Vérifie si l'utilisateur est le propriétaire du bot."""
+    return str(user_id) == config.get("bot_owner_id", "") or is_super_admin(user_id)
+
+
+def is_whitelisted_admin(user_id: int) -> bool:
+    """Vérifie si l'utilisateur est dans la whitelist des admins."""
+    whitelisted = config.get("whitelisted_admins", [])
+    return str(user_id) in whitelisted
+
+
+def has_bot_permission(user_id: int) -> bool:
+    """Vérifie si l'utilisateur a les permissions principales du bot (owner ou whitelist)."""
+    return is_bot_owner(user_id) or is_whitelisted_admin(user_id) or is_super_admin(user_id)
+
+
+def is_command_disabled(command_name: str) -> bool:
+    """Vérifie si une commande est désactivée dans la configuration."""
+    disabled = config.get("disabled_commands", [])
+    return command_name in disabled
+
+
+def is_guild_owner(member: discord.Member) -> bool:
+    """Vérifie si l'utilisateur est le propriétaire du serveur."""
+    return member.guild.owner_id == member.id
+
+
+def is_guild_admin(member: discord.Member, cfg: dict | None) -> bool:
+    """Vérifie si l'utilisateur est admin du serveur (rôles admin ou permissions Discord)."""
+    if is_super_admin(member.id):
+        return True
+    
+    if not cfg:
+        return False
+    
+    # Vérifier les rôles admin configurés
+    admin_roles = cfg.get("admin_roles") or []
+    for rid in admin_roles:
+        role = member.guild.get_role(int(rid))
+        if role and role in member.roles:
+            return True
+    
+    # Vérifier les permissions Discord (manage_guild)
+    if member.guild_permissions.manage_guild:
+        return True
+    
+    return False
+
+
+def is_guild_mod(member: discord.Member, cfg: dict | None) -> bool:
+    """Vérifie si l'utilisateur est modérateur du serveur (rôles mod)."""
+    if is_super_admin(member.id):
+        return True
+    
+    if not cfg:
+        return False
+    
+    mod_roles = cfg.get("mod_roles") or []
+    for rid in mod_roles:
+        role = member.guild.get_role(int(rid))
+        if role and role in member.roles:
+            return True
+    
+    return False
+
+
+async def command_enabled_check(interaction: discord.Interaction) -> bool:
+    """Check Discord : refuse l'exécution si la commande est désactivée."""
+    command_name = interaction.command.name if interaction.command else None
+    if command_name and is_command_disabled(command_name):
+        await interaction.response.send_message(
+            f"❌ Cette commande est désactivée par l'administrateur.",
+            ephemeral=True
         )
-
-    async def setup_hook(self):
-        print("🔄 Synchronisation des commandes slash...")
-
-        try:
-            synced = await self.tree.sync()
-            print(f"✅ {len(synced)} commandes synchronisées")
-
-        except Exception as e:
-            print(f"❌ Erreur sync commandes : {e}")
+        return False
+    return True
 
 
-    async def on_ready(self):
-        print("==============================")
-        print(f"🤖 Bot connecté : {self.user}")
-        print(f"🆔 ID : {self.user.id}")
-        print(f"🌐 Serveurs : {len(self.guilds)}")
-        print("==============================")
+async def build_transcript(channel: discord.TextChannel, limit: int = 450) -> str:
+    lines = [
+        f"Transcript du salon #{channel.name}",
+        f"ID salon : {channel.id} | Serveur : {channel.guild.name} ({channel.guild.id})",
+        "",
+    ]
+    async for m in channel.history(limit=limit, oldest_first=True):
+        ts = m.created_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+        author = f"{m.author} ({m.author.id})"
+        chunks: list[str] = []
+        if m.content:
+            chunks.append(m.content)
+        for a in m.attachments:
+            chunks.append(f"[fichier: {a.filename} | {a.url}]")
+        for e in m.embeds:
+            et = e.title or e.description or "embed"
+            chunks.append(f"[embed: {et[:240]}]")
+        body = " ".join(chunks) if chunks else "(sans contenu texte)"
+        lines.append(f"[{ts}] {author}: {body}")
+    return "\n".join(lines)
 
 
-# ==========================
-# DISCORD BOT
-# ==========================
-
-
-intents = discord.Intents.all()
-
-
-
-bot = TicketBot(
-    command_prefix="!",
-    intents=intents
-)
-
-
-
-# ==========================
-# START DASHBOARD
-# ==========================
-
-
-run_dashboard()
-
-
-
-# ==========================
-# LOGGER
-# ==========================
-
-if AdvancedLogger:
-
-    logs_manager = AdvancedLogger(
-        bot,
-        config
-    )
-
-    print("✅ Logger avancé activé")
-
-else:
-
-    logs_manager = None
-
-    print("⚠️ Logger avancé désactivé")
-
-
-async def get_valid_panels_for_guild(guild_id: str, member: discord.Member | None = None) -> list[dict]:
-    """Récupère les panels valides pour un serveur."""
-    # Load panels directly from file to ensure fresh data
-    try:
-        if os.path.isfile(PANELS_FILE):
-            with open(PANELS_FILE, "r", encoding="utf-8") as f:
-                panels_data = json.load(f)
-                return panels_data.get(guild_id, [])
-    except Exception:
-        pass
-    return []
-
-
-async def send_panel_instructions(user: discord.User, guild: discord.Guild) -> None:
-    """Envoie les instructions pour trouver le panel en DM."""
-    user_id = str(user.id)
-    guild_id = str(guild.id)
-    
-    # Check anti-spam (24 hours = 86400 seconds)
-    now = time.time()
-    if user_id in panel_dm_cooldown:
-        if now - panel_dm_cooldown[user_id] < 86400:
-            return  # Already sent within last 24 hours
-    
-    # Get valid panels for this guild
-    valid_panels = await get_valid_panels_for_guild(guild_id, guild.get_member(user.id))
-    
-    try:
-        if valid_panels:
-            # Build message with valid panels as clickable channel mentions (limit to 10)
-            panel_list = "\n".join([f"<#{p['channel_id']}>" for p in valid_panels[:10]])
-            
-            embed = discord.Embed(
-                title="📩 Ton ticket a été traité",
-                description=(
-                    "Pour en recréer un :\n\n"
-                    "👉 Va dans les salons suivants où le panel est actif :\n\n"
-                    f"{panel_list}\n\n"
-                    "👉 Clique sur le bouton 📩 Contacter"
-                ),
-                color=discord.Color.blurple(),
-            )
-            if bot.user and bot.user.avatar:
-                embed.set_thumbnail(url=bot.user.avatar.url)
-            embed.set_footer(text=guild.name)
-        else:
-            # No valid panels found
-            embed = discord.Embed(
-                title="🎫 Ticket traité",
-                color=discord.Color.green(),
-            )
-            embed.add_field(
-                name="📩 Statut",
-                value="Ton ticket a été traité",
-                inline=False,
-            )
-            embed.add_field(
-                name="Pour en recréer un :",
-                value="👉 Si tu ne trouves pas le salon, demande à un membre du staff où se trouve le panel ticket.",
-                inline=False,
-            )
-            if bot.user and bot.user.avatar:
-                embed.set_thumbnail(url=bot.user.avatar.url)
-            embed.set_footer(text="Système de tickets")
-        
-        await user.send(embed=embed)
-        
-        # Update cooldown
-        panel_dm_cooldown[user_id] = now
-    except discord.Forbidden:
-        pass  # DM fermés
-    except discord.HTTPException:
-        pass
-
-
-async def send_ticket_closed_dm(user: discord.User) -> None:
-    """Envoie le message unique de fermeture de ticket en DM."""
-    message = (
-        "📩 Ton ticket a été traité\n\n"
-        "Pour en recréer un :\n\n"
-        "👉 Si tu ne trouves pas le salon, demande à un membre du staff où se trouve le panel ticket."
-    )
+async def send_support_dm(user: discord.User, guild: discord.Guild | None = None) -> None:
+    """Envoie le message de support permanent en DM."""
     try:
         embed = discord.Embed(
-            title="🎫 Ticket traité",
-            description=message,
-            color=discord.Color.purple(),
+            title="📩 SUPPORT",
+            description=(
+                "👉 Clique sur le bouton ci-dessous pour ouvrir un ticket\n\n"
+                "⚡ Support rapide\n🛡️ Staff disponible\n\n"
+                "💬 Tu peux aussi envoyer un message directement au bot pour créer un ticket."
+            ),
+            color=discord.Color.blurple(),
         )
         if bot.user and bot.user.avatar:
             embed.set_thumbnail(url=bot.user.avatar.url)
-        embed.set_footer(text="Système de tickets")
+        if guild:
+            embed.set_footer(text=guild.name)
+        
+        # Find the guild_id for this user
+        user_id = str(user.id)
+        guild_id = user_guild_map.get(user_id)
+        
+        if guild_id:
+            # Show category selection directly
+            cfg = config.get("guilds", {}).get(guild_id)
+            if cfg and cfg.get("categories"):
+                guild_obj = bot.get_guild(int(guild_id))
+                embed.set_footer(text=guild_obj.name if guild_obj else "Serveur inconnu")
+                await user.send(embed=embed, view=CategorySelect(user, guild_id, ""))
+                return
+        
+        # If no guild_id, send simple message
         await user.send(embed=embed)
     except discord.Forbidden:
         pass  # DM fermés
@@ -556,23 +311,6 @@ async def execute_ticket_close(
     pair = store.get_ticket_by_channel(channel.id)
     uid = pair[0] if pair else None
     meta = pair[1] if pair else {}
-    if uid and store.delete_ticket_by_channel(channel.id) is None:
-        uid = None
-
-    if uid:
-        # Send the same closure DM for every ticket/server/category.
-        try:
-            user = await bot.fetch_user(int(uid))
-            await send_ticket_closed_dm(user)
-        except discord.Forbidden:
-            pass  # DM fermés
-        except discord.NotFound:
-            pass
-        except discord.HTTPException:
-            pass
-
-        store.recently_closed_add(uid, gid, str(meta.get("category", "")))
-        store.stats_inc_closed()
 
     os.makedirs(TRANSCRIPTS_DIR, exist_ok=True)
     transcript = await build_transcript(channel)
@@ -602,6 +340,52 @@ async def execute_ticket_close(
             )
         except discord.HTTPException:
             await log_ch.send(embed=embed)
+
+    if uid:
+        # Envoyer un message automatique dans le salon avant sa fermeture
+        try:
+            close_channel_embed = discord.Embed(
+                title="🔒 Ticket fermé",
+                description=(
+                    f"Ce ticket a été fermé par {actor.mention if actor != bot.user else 'le bot'}.\n\n"
+                    f"📂 Catégorie : {meta.get('category', 'N/A')}\n"
+                    f"📝 Le transcript a été sauvegardé."
+                ),
+                color=discord.Color.red(),
+            )
+            if bot.user and bot.user.avatar:
+                close_channel_embed.set_thumbnail(url=bot.user.avatar.url)
+            close_channel_embed.set_footer(text=f"ID ticket : {channel.id}")
+            await channel.send(embed=close_channel_embed)
+        except discord.HTTPException:
+            pass  # Impossible d'envoyer le message
+        
+        # Envoyer un message en MP à l'utilisateur pour informer que le ticket est fermé
+        try:
+            user = await bot.fetch_user(int(uid))
+            close_embed = discord.Embed(
+                title="🗂 Ticket fermé",
+                description=(
+                    f"Ton ticket a été fermé par {actor.mention if actor != user else 'toi-même'}.\n\n"
+                    f"📂 Catégorie : {meta.get('category', 'N/A')}\n"
+                    f"💬 Tu peux réouvrir un ticket à tout moment en envoyant un MP au bot."
+                ),
+                color=discord.Color.orange(),
+            )
+            if bot.user and bot.user.avatar:
+                close_embed.set_thumbnail(url=bot.user.avatar.url)
+            await user.send(embed=close_embed)
+            
+            # Re-send support message after ticket closure
+            await send_support_dm(user, guild)
+        except discord.Forbidden:
+            pass  # L'utilisateur a désactivé les MP
+        except discord.NotFound:
+            pass  # L'utilisateur n'existe plus
+
+        store.recently_closed_add(uid, gid, str(meta.get("category", "")))
+        store.delete_ticket(uid)
+        store.stats_inc_closed()
 
     # Répondre AVANT de supprimer le salon
     if interaction is not None and interaction.response.is_done():
@@ -682,8 +466,8 @@ class ProfileButton(discord.ui.Button):
         embed.add_field(name="Compte créé le", value=target_user.created_at.strftime("%d/%m/%Y %H:%M"), inline=True)
         embed.set_footer(text=f"ID utilisateur: {target_user.id}")
         embed.timestamp = target_user.created_at
-        view = RoleManagementView(self.ticket_user_id, ch.guild.id)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        
+        await interaction.response.send_message(embed=embed, view=RoleManagementView(self.ticket_user_id, ch.guild.id), ephemeral=True)
 
 
 class RoleManagementView(discord.ui.View):
@@ -720,9 +504,6 @@ class RoleManagementView(discord.ui.View):
         select = discord.ui.Select(
             placeholder="Choisis un rôle à ajouter",
             options=options,
-            custom_id=f"ticketmp_role_add:{self.user_id}:{self.guild_id}",
-            min_values=1,
-            max_values=1,
         )
         
         async def select_callback(interaction: discord.Interaction):
@@ -738,13 +519,11 @@ class RoleManagementView(discord.ui.View):
                 await interaction.response.send_message("❌ Permission refusée pour ajouter ce rôle.", ephemeral=True)
         
         select.callback = select_callback
-        view = discord.ui.View(timeout=None)
+        view = discord.ui.View()
         view.add_item(select)
-        await interaction.response.send_message(
-            "Sélectionne un rôle à ajouter :",
-            view=view,
-            ephemeral=True,
-        )
+        await interaction.response.send_message("Sélectionne un rôle à ajouter:", view=view, ephemeral=True)
+    
+    @discord.ui.button(label="➖ Enlever rôle", style=discord.ButtonStyle.danger)
     async def remove_role(self, interaction: discord.Interaction, button: discord.ui.Button):
         guild = bot.get_guild(self.guild_id)
         if not guild:
@@ -763,9 +542,6 @@ class RoleManagementView(discord.ui.View):
         select = discord.ui.Select(
             placeholder="Choisis un rôle à enlever",
             options=options,
-            custom_id=f"ticketmp_role_remove:{self.user_id}:{self.guild_id}",
-            min_values=1,
-            max_values=1,
         )
         
         async def select_callback(interaction: discord.Interaction):
@@ -781,13 +557,11 @@ class RoleManagementView(discord.ui.View):
                 await interaction.response.send_message("❌ Permission refusée pour retirer ce rôle.", ephemeral=True)
         
         select.callback = select_callback
-        view = discord.ui.View(timeout=None)
+        view = discord.ui.View()
         view.add_item(select)
-        await interaction.response.send_message(
-            "Sélectionne un rôle à enlever :",
-            view=view,
-            ephemeral=True,
-        )
+        await interaction.response.send_message("Sélectionne un rôle à enlever:", view=view, ephemeral=True)
+
+
 class CloseTicketButton(discord.ui.Button):
     def __init__(self, user_id: int, channel_id: int):
         super().__init__(
@@ -1222,123 +996,9 @@ class TicketBot(commands.Bot):
 
 intents = discord.Intents.all()
 bot = TicketBot(command_prefix="!", intents=intents)
-run_dashboard()
 
 cfg_ctrl = ConfigController(bot, config, CONFIG_FILE, load_cfg_file)
 setup_security_panel(bot, config, cfg_ctrl, command_enabled_check)
-
-
-# --- Temporary voice mapping (in-memory) ---
-# Structure stored on bot instance:
-# bot.temp_voice_map: dict[channel_id_str] = { owner: user_id_str, guild: gid_str, created_at: ts }
-# bot.temp_voice_monitors: dict[channel_id_str] = asyncio.Task
-# bot.user_temp_channel: dict[user_id_str] = channel_id_str
-if not hasattr(bot, "temp_voice_map"):
-    bot.temp_voice_map = {}
-if not hasattr(bot, "temp_voice_monitors"):
-    bot.temp_voice_monitors = {}
-if not hasattr(bot, "temp_voice_cooldowns"):
-    bot.temp_voice_cooldowns = {}
-if not hasattr(bot, "user_temp_channel"):
-    bot.user_temp_channel = {}
-
-
-@bot.event
-async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-    try:
-        # Only handle joins into voice channels (not leaves or moves out)
-        guild = member.guild
-        gid = str(guild.id)
-        gcfg = cfg_ctrl.config.get("guilds", {}).get(gid, {})
-
-        # Find the configured join-to-create channel id for this guild
-        join_channel_id = gcfg.get("join_to_create_channel_id")
-        if not join_channel_id:
-            return
-
-        join_ch = guild.get_channel(int(join_channel_id)) if join_channel_id else None
-        # if user didn't join the configured channel, ignore
-        if after.channel is None or (join_ch and after.channel.id != join_ch.id):
-            return
-
-        # Prevent bots
-        if member.bot:
-            return
-
-        # Prevent creating multiple temp channels per user
-        uid = str(member.id)
-        if uid in bot.user_temp_channel:
-            # User already has an active temporary channel — move them into it
-            existing = guild.get_channel(int(bot.user_temp_channel[uid]))
-            if existing:
-                try:
-                    await member.move_to(existing)
-                except Exception:
-                    pass
-                return
-
-        # Determine parent category (optional)
-        parent = None
-        parent_id = gcfg.get("temp_voice_category_id")
-        if parent_id:
-            try:
-                parent = guild.get_channel(int(parent_id))
-            except Exception:
-                parent = None
-
-        # Create channel name
-        safe_name = f"🎤・{(member.display_name or member.name)[:90]}"
-        try:
-            channel = await guild.create_voice_channel(name=safe_name, category=parent, reason="Join-to-create temporary channel")
-        except Exception:
-            return
-
-        now_ts = time.time()
-        bot.temp_voice_map[str(channel.id)] = {"owner": uid, "guild": gid, "created_at": now_ts}
-        bot.user_temp_channel[uid] = str(channel.id)
-
-        # Start monitor task
-        async def _monitor(ch_id: int):
-            try:
-                await asyncio.sleep(5)
-                empty_since = None
-                while True:
-                    await asyncio.sleep(10)
-                    ch = bot.get_channel(ch_id)
-                    if ch is None:
-                        break
-                    members = [m for m in ch.members if not m.bot]
-                    if members:
-                        empty_since = None
-                        continue
-                    if empty_since is None:
-                        empty_since = time.time()
-                        continue
-                    if time.time() - empty_since >= 30:
-                        try:
-                            await ch.delete(reason="Temporary voice channel expired")
-                        except Exception:
-                            pass
-                        break
-            finally:
-                bot.temp_voice_monitors.pop(str(ch_id), None)
-                entry = bot.temp_voice_map.pop(str(ch_id), None)
-                if entry:
-                    owner = entry.get("owner")
-                    if owner and bot.user_temp_channel.get(owner) == str(ch_id):
-                        bot.user_temp_channel.pop(owner, None)
-
-        task = asyncio.create_task(_monitor(channel.id))
-        bot.temp_voice_monitors[str(channel.id)] = task
-
-        # Move member into channel
-        try:
-            await member.move_to(channel)
-        except Exception:
-            pass
-
-    except Exception:
-        return
 
 
 def _embed_trim(text: str, limit: int = 3900) -> str:
@@ -1460,37 +1120,6 @@ async def update_bot_activity():
     if not bot.guilds:
         return
 
-
-    @bot.event
-    async def on_ready():
-        # Create the fixed trigger channel "🎤 ➕ Créer votre salon" when missing
-        if getattr(bot, "_join_to_create_init_done", False):
-            return
-        try:
-            guilds_cfg = cfg_ctrl.config.get("guilds", {})
-            for guild in list(bot.guilds):
-                gid = str(guild.id)
-                gcfg = guilds_cfg.get(gid)
-                if not gcfg:
-                    continue
-                if not gcfg.get("join_to_create_channel_id"):
-                    parent = None
-                    parent_id = gcfg.get("temp_voice_category_id")
-                    if parent_id:
-                        try:
-                            parent = guild.get_channel(int(parent_id))
-                        except Exception:
-                            parent = None
-                    try:
-                        ch = await guild.create_voice_channel(name="🎤 ➕ Créer votre salon", category=parent, reason="Create join-to-create trigger channel")
-                        gcfg["join_to_create_channel_id"] = str(ch.id)
-                        cfg_ctrl.save()
-                    except Exception:
-                        # ignore failures (permissions etc.)
-                        continue
-        finally:
-            bot._join_to_create_init_done = True
-
     admins_online_ids = set()
     total_servers = 0
 
@@ -1522,10 +1151,7 @@ async def update_bot_activity():
                 admins_online_ids.add(member.id)
 
     activity_text = f"{len(admins_online_ids)} admin(s) en ligne | {total_servers} serveur(s)"
-    try:
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=activity_text))
-    except (ClientConnectionResetError, ConnectionResetError, aiohttp.ClientConnectionError):
-        pass
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=activity_text))
 
 
 async def background_jobs():
@@ -1710,15 +1336,11 @@ class PanelView(discord.ui.View):
                 embed.set_thumbnail(url=bot.user.avatar.url)
             embed.set_footer(text=guild.name if guild else "Serveur inconnu")
             
-            view = CategorySelect(interaction.user, guild_id, "")
             await interaction.user.send(
                 embed=embed,
-                view=view
+                view=CategorySelect(interaction.user, guild_id, "")
             )
-            await interaction.response.send_message(
-                "📩 Regarde tes messages privés (MP) pour continuer la création du ticket",
-                ephemeral=True,
-            )
+            await interaction.response.send_message("📩 Regarde tes MP", ephemeral=True)
         except discord.Forbidden:
             return await interaction.response.send_message(
                 "❌ Impossible de t'envoyer un MP (DM fermés ou bloqués).",
@@ -1729,7 +1351,6 @@ class PanelView(discord.ui.View):
 @bot.tree.command(name="panel", description="Affiche le panneau support avec bouton MP")
 @app_commands.check(command_enabled_check)
 async def panel_cmd(interaction: discord.Interaction):
-    global panels
     embed = discord.Embed(
         title="📩 SUPPORT",
         description="Clique pour ouvrir un ticket en message privé.",
@@ -1737,34 +1358,7 @@ async def panel_cmd(interaction: discord.Interaction):
     )
     if bot.user and bot.user.avatar:
         embed.set_thumbnail(url=bot.user.avatar.url)
-    view = PanelView()
-    await interaction.response.send_message(embed=embed, view=view)
-    
-    # Register panel information
-    if interaction.guild and interaction.channel:
-        message = await interaction.original_response()
-        guild_id = str(interaction.guild.id)
-        channel_id = str(interaction.channel.id)
-        panel_message_id = str(message.id)
-        channel_name = interaction.channel.name
-        
-        # Update panels data
-        if guild_id not in panels:
-            panels[guild_id] = []
-        
-        # Remove old panels in this guild (only one panel per channel)
-        panels[guild_id] = [p for p in panels[guild_id] if p.get("channel_id") != channel_id]
-        
-        # Add new panel
-        panels[guild_id].append({
-            "channel_id": channel_id,
-            "channel_name": channel_name,
-            "panel_message_id": panel_message_id
-        })
-        
-        # Save to file directly
-        with open(PANELS_FILE, "w", encoding="utf-8") as f:
-            json.dump(panels, f, indent=2, ensure_ascii=False)
+    await interaction.response.send_message(embed=embed, view=PanelView())
 
 
 @bot.tree.command(name="botconfig", description="Panneau complet : serveurs, salons, rôles, menu ticket…")
@@ -1997,6 +1591,169 @@ async def whitelist_list_cmd(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+class ServerAuthorizeModal(discord.ui.Modal, title="Autoriser un serveur"):
+    guild_id = discord.ui.TextInput(
+        label="ID du serveur",
+        style=discord.TextStyle.short,
+        placeholder="Entrez l'ID du serveur",
+        required=True,
+        max_length=32,
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        guild_id = str(interaction.guild.id) if interaction.guild else "global"
+        lock = await abuse_manager.begin_modal_submit(
+            interaction,
+            guild_id,
+            "server_authorize_modal",
+            config,
+            bot,
+        )
+        if not lock:
+            return
+
+        try:
+            if not is_super_admin(interaction.user.id):
+                return await interaction.response.send_message("Accès refusé", ephemeral=True)
+
+            try:
+                gid_int = int(self.guild_id.value.strip())
+            except ValueError:
+                return await interaction.response.send_message(
+                    "❌ ID de serveur invalide.", ephemeral=True
+                )
+
+            gid = str(gid_int)
+            if gid in config.get("guilds", {}):
+                return await interaction.response.send_message(
+                    "❌ Ce serveur est déjà autorisé.", ephemeral=True
+                )
+
+            guild = bot.get_guild(gid_int)
+            ensure_guild_entry(config, gid, guild)
+            cfg_ctrl.save()
+
+            embed = discord.Embed(
+                title="✅ Serveur autorisé",
+                description=f"Le serveur `{gid}` a été autorisé avec succès.",
+                color=discord.Color.green(),
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        finally:
+            lock.release()
+            abuse_manager.clear_modal_open(guild_id, str(interaction.user.id))
+
+
+class ServerUnauthorizeModal(discord.ui.Modal, title="Désautoriser un serveur"):
+    guild_id = discord.ui.TextInput(
+        label="ID du serveur",
+        style=discord.TextStyle.short,
+        placeholder="Entrez l'ID du serveur",
+        required=True,
+        max_length=32,
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        guild_id = str(interaction.guild.id) if interaction.guild else "global"
+        lock = await abuse_manager.begin_modal_submit(
+            interaction,
+            guild_id,
+            "server_unauthorize_modal",
+            config,
+            bot,
+        )
+        if not lock:
+            return
+
+        try:
+            if not is_super_admin(interaction.user.id):
+                return await interaction.response.send_message("Accès refusé", ephemeral=True)
+
+            try:
+                gid_int = int(self.guild_id.value.strip())
+            except ValueError:
+                return await interaction.response.send_message(
+                    "❌ ID de serveur invalide.", ephemeral=True
+                )
+
+            gid = str(gid_int)
+            if gid not in config.get("guilds", {}):
+                return await interaction.response.send_message(
+                    "❌ Ce serveur n'est pas autorisé.", ephemeral=True
+                )
+
+            guild = bot.get_guild(gid_int)
+            config["guilds"].pop(gid, None)
+            cfg_ctrl.save()
+
+            if guild:
+                try:
+                    await guild.leave()
+                except Exception as e:
+                    return await interaction.response.send_message(
+                        f"❌ Erreur en quittant le serveur : {e}", ephemeral=True
+                    )
+
+            embed = discord.Embed(
+                title="✅ Serveur désautorisé",
+                description=f"Le serveur `{gid}` a été désautorisé.",
+                color=discord.Color.orange(),
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        finally:
+            lock.release()
+            abuse_manager.clear_modal_open(guild_id, str(interaction.user.id))
+
+
+class ServerPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Autoriser un serveur",
+        style=discord.ButtonStyle.success,
+        custom_id="server_panel_authorize",
+    )
+    async def authorize_server(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not is_super_admin(interaction.user.id):
+            return await interaction.response.send_message("Accès refusé", ephemeral=True)
+
+        guild_id = str(interaction.guild.id) if interaction.guild else "global"
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "server_panel_authorize_button",
+            config,
+            bot,
+            modal_open=True,
+        ):
+            return
+
+        await interaction.response.send_modal(ServerAuthorizeModal())
+
+    @discord.ui.button(
+        label="Désautoriser un serveur",
+        style=discord.ButtonStyle.danger,
+        custom_id="server_panel_unauthorize",
+    )
+    async def unauthorize_server(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not is_super_admin(interaction.user.id):
+            return await interaction.response.send_message("Accès refusé", ephemeral=True)
+
+        guild_id = str(interaction.guild.id) if interaction.guild else "global"
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "server_panel_unauthorize_button",
+            config,
+            bot,
+            modal_open=True,
+        ):
+            return
+
+        await interaction.response.send_modal(ServerUnauthorizeModal())
+
+
 @bot.tree.command(name="server_panel", description="Ancienne commande : utilise /security")
 @app_commands.check(command_enabled_check)
 async def server_panel_cmd(interaction: discord.Interaction):
@@ -2004,10 +1761,240 @@ async def server_panel_cmd(interaction: discord.Interaction):
         return await interaction.response.send_message(
             "Cette commande doit être utilisée depuis un serveur.", ephemeral=True
         )
-    await interaction.response.send_message(
-        "❌ La commande `/server_panel` n'est plus prise en charge. Utilise uniquement `/security`.",
+    return await interaction.response.send_message(
+        "📌 Utilise maintenant la commande `/security` pour gérer la sécurité et l'anti-abuse.",
         ephemeral=True,
     )
+
+
+def get_logs_settings(gid: str, guild: discord.Guild | None) -> dict:
+    gcfg = ensure_guild_entry(config, gid, guild)
+    return gcfg.setdefault(
+        "logs",
+        {
+            "channel_id": None,
+            "log_commands": False,
+            "log_server_auth": False,
+            "log_errors": False,
+            "log_admin_actions": False,
+        },
+    )
+
+
+def build_logs_panel_embed(gid: str, guild: discord.Guild) -> discord.Embed:
+    logs = get_logs_settings(gid, guild)
+    channel = None
+    if logs.get("channel_id"):
+        channel = bot.get_channel(int(logs["channel_id"])) or guild.get_channel(int(logs["channel_id"]))
+
+    channel_text = channel.mention if channel else "Aucun salon de logs configuré"
+    embed = discord.Embed(
+        title="📝 Panneau de logs du serveur",
+        description=(
+            "Gère les logs de ce serveur avec le panneau interactif ci-dessous.\n"
+            "Seul le super admin peut utiliser cette commande."
+        ),
+        color=THEME,
+    )
+    embed.add_field(name="Salon de logs actuel", value=channel_text, inline=False)
+    embed.add_field(
+        name="Types de logs activés",
+        value=(
+            f"• Commandes : {'✅' if logs.get('log_commands') else '❌'}\n"
+            f"• Autorisations de serveurs : {'✅' if logs.get('log_server_auth') else '❌'}\n"
+            f"• Erreurs du bot : {'✅' if logs.get('log_errors') else '❌'}\n"
+            f"• Actions admin : {'✅' if logs.get('log_admin_actions') else '❌'}"
+        ),
+        inline=False,
+    )
+    embed.set_footer(text=f"Serveur {guild.name} • ID {gid}")
+    return embed
+
+
+class LogsPanelView(discord.ui.View):
+    def __init__(self, guild: discord.Guild, gid: str):
+        super().__init__(timeout=None)
+        self.guild = guild
+        self.gid = gid
+        self.logs = get_logs_settings(gid, guild)
+
+        self.channel_select = discord.ui.ChannelSelect(
+            placeholder="Choisir un salon texte pour les logs",
+            channel_types=[discord.ChannelType.text],
+            min_values=1,
+            max_values=1,
+            custom_id="logs_panel_channel_select",
+        )
+        self.channel_select.callback = self.set_log_channel
+        self.add_item(self.channel_select)
+
+    async def ensure_super_admin(self, interaction: discord.Interaction) -> bool:
+        if not is_super_admin(interaction.user.id):
+            await interaction.response.send_message("Accès refusé", ephemeral=True)
+            return False
+        return True
+
+    async def update_message(self, interaction: discord.Interaction):
+        await interaction.response.edit_message(
+            embed=build_logs_panel_embed(self.gid, self.guild),
+            view=self,
+        )
+
+    @discord.ui.button(
+        label="Créer salon logs",
+        style=discord.ButtonStyle.primary,
+        custom_id="logs_panel_create_channel",
+        row=1,
+    )
+    async def create_logs_channel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_create_channel",
+            config,
+            bot,
+        ):
+            return
+
+        channel = next(
+            (c for c in self.guild.text_channels if c.name.lower() == "logs-bot"),
+            None,
+        )
+        if not channel:
+            try:
+                channel = await self.guild.create_text_channel("logs-bot")
+            except discord.Forbidden:
+                return await interaction.response.send_message(
+                    "❌ Le bot n'a pas la permission de créer un salon.",
+                    ephemeral=True,
+                )
+            except Exception as e:
+                return await interaction.response.send_message(
+                    f"❌ Impossible de créer le salon : {e}", ephemeral=True
+                )
+
+        self.logs["channel_id"] = int(channel.id)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+    @discord.ui.button(
+        label="Commandes",
+        style=discord.ButtonStyle.secondary,
+        custom_id="logs_panel_toggle_commands",
+        row=1,
+    )
+    async def toggle_commands(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_toggle_commands",
+            config,
+            bot,
+        ):
+            return
+
+        self.logs["log_commands"] = not self.logs.get("log_commands", False)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+    @discord.ui.button(
+        label="Serveur auth",
+        style=discord.ButtonStyle.secondary,
+        custom_id="logs_panel_toggle_server_auth",
+        row=1,
+    )
+    async def toggle_server_auth(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_toggle_server_auth",
+            config,
+            bot,
+        ):
+            return
+
+        self.logs["log_server_auth"] = not self.logs.get("log_server_auth", False)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+    @discord.ui.button(
+        label="Erreurs",
+        style=discord.ButtonStyle.secondary,
+        custom_id="logs_panel_toggle_errors",
+        row=2,
+    )
+    async def toggle_errors(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_toggle_errors",
+            config,
+            bot,
+        ):
+            return
+
+        self.logs["log_errors"] = not self.logs.get("log_errors", False)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+    @discord.ui.button(
+        label="Actions admin",
+        style=discord.ButtonStyle.secondary,
+        custom_id="logs_panel_toggle_admin_actions",
+        row=2,
+    )
+    async def toggle_admin_actions(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_toggle_admin_actions",
+            config,
+            bot,
+        ):
+            return
+
+        self.logs["log_admin_actions"] = not self.logs.get("log_admin_actions", False)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
+
+    async def set_log_channel(self, interaction: discord.Interaction):
+        if not await self.ensure_super_admin(interaction):
+            return
+
+        guild_id = str(self.guild.id)
+        if not await abuse_manager.start_action(
+            interaction,
+            guild_id,
+            "logs_panel_select_channel",
+            config,
+            bot,
+        ):
+            return
+
+        selected = self.channel_select.values[0]
+        self.logs["channel_id"] = int(selected.id)
+        cfg_ctrl.save()
+        await self.update_message(interaction)
 
 
 @bot.tree.command(name="logs_panel", description="Ancienne commande : utilise /security")
@@ -2017,8 +2004,8 @@ async def logs_panel_cmd(interaction: discord.Interaction):
         return await interaction.response.send_message(
             "Cette commande doit être utilisée depuis un serveur.", ephemeral=True
         )
-    await interaction.response.send_message(
-        "❌ La commande `/logs_panel` n'est plus prise en charge. Utilise uniquement `/security`.",
+    return await interaction.response.send_message(
+        "📌 Utilise maintenant la commande `/security` pour gérer la sécurité et l'anti-abuse.",
         ephemeral=True,
     )
 
@@ -2173,12 +2160,10 @@ async def ticket_reopen_cmd(
         color=THEME,
     )
     embed.set_thumbnail(url=membre.display_avatar.url)
-    ticket_view = TicketAdminPanel(membre.id, channel.id)
-    bot.add_view(ticket_view)
     await channel.send(
         content=" ".join(mentions),
         embed=embed,
-        view=ticket_view,
+        view=TicketAdminPanel(membre.id, channel.id),
     )
 
     await interaction.response.send_message(
@@ -2212,25 +2197,6 @@ async def owner_panel_cmd(interaction: discord.Interaction):
     )
 
 
-@bot.tree.command(name="config", description="Ouvre le panneau de configuration du serveur")
-@app_commands.check(command_enabled_check)
-async def config_cmd(interaction: discord.Interaction):
-    if not interaction.guild or not isinstance(interaction.user, discord.Member):
-        return await interaction.response.send_message("Commande à utiliser sur un serveur.", ephemeral=True)
-
-    gid = str(interaction.guild.id)
-    cfg = config.get("guilds", {}).get(gid)
-
-    # Permission: propriétaire du serveur, admin configuré, ou super admin
-    if not (is_super_admin(interaction.user.id) or is_guild_owner(interaction.user) or is_guild_admin(interaction.user, cfg)):
-        return await interaction.response.send_message("🔒 Accès refusé.", ephemeral=True)
-
-    ensure_guild_entry(config, gid, interaction.guild)
-    cfg_ctrl.save()
-    view = ConfigDashboardView(cfg_ctrl, gid, THEME)
-    await interaction.response.send_message(embed=view.build_embed(), view=view, ephemeral=True)
-
-
 @bot.tree.command(name="panel-invitation", description="Panel de gestion multi-configurations des invitations du bot (réservé)")
 @app_commands.check(command_enabled_check)
 async def panel_invitation_cmd(interaction: discord.Interaction):
@@ -2256,8 +2222,7 @@ async def panel_invitation_cmd(interaction: discord.Interaction):
         embed.set_thumbnail(url=bot.user.avatar.url)
     embed.set_footer(text=f"Accès réservé à l'utilisateur {SUPER_ADMIN_ID}")
 
-    view = InvitePanelView()
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+    await interaction.response.send_message(embed=embed, view=InvitePanelView(), ephemeral=True)
 
 
 class CategorySelect(discord.ui.View):
@@ -2276,13 +2241,12 @@ class CategorySelect(discord.ui.View):
             self.add_item(CategoryButton(self, key, data))
 
     async def create_ticket(self, interaction: discord.Interaction, category: str):
-        await interaction.response.defer()
         uid = str(self.user.id)
         tickets_map = store.get_tickets_dict()
 
         guild = interaction.guild or bot.get_guild(int(self.guild_id))
         if not guild:
-            return await interaction.followup.send(
+            return await interaction.response.send_message(
                 "❌ Serveur introuvable : vérifie que le bot est **invité** sur ce serveur.",
                 ephemeral=True,
             )
@@ -2291,27 +2255,27 @@ class CategorySelect(discord.ui.View):
             old_id = tickets_map[uid].get("channel_id")
             old_channel = guild.get_channel(old_id)
             if old_channel:
-                return await interaction.followup.send(
+                return await interaction.response.send_message(
                     "❌ Tu as déjà un ticket ouvert", ephemeral=True
                 )
             store.delete_ticket(uid)
 
         cfg = config.get("guilds", {}).get(self.guild_id)
         if not cfg:
-            return await interaction.followup.send(
+            return await interaction.response.send_message(
                 "❌ Config introuvable", ephemeral=True
             )
 
         tid_conf = cfg.get("ticket") or {}
         raw_cid = tid_conf.get("category_id")
         if raw_cid is None:
-            return await interaction.followup.send(
+            return await interaction.response.send_message(
                 "❌ `ticket.category_id` manquant dans la config.",
                 ephemeral=True,
             )
         category_parent = guild.get_channel(int(raw_cid))
         if not isinstance(category_parent, discord.CategoryChannel):
-            return await interaction.followup.send(
+            return await interaction.response.send_message(
                 "❌ Catégorie Discord invalide (vérifie `category_id` dans config).",
                 ephemeral=True,
             )
@@ -2319,12 +2283,12 @@ class CategorySelect(discord.ui.View):
         try:
             ticket_subject = await guild.fetch_member(int(uid))
         except discord.NotFound:
-            return await interaction.followup.send(
+            return await interaction.response.send_message(
                 "❌ Tu dois être **sur le serveur** pour ouvrir un ticket depuis les MP.",
                 ephemeral=True,
             )
         except discord.HTTPException:
-            return await interaction.followup.send(
+            return await interaction.response.send_message(
                 "❌ Le bot ne peut pas lire les membres du serveur. "
                 "Active **Privileged Gateway Intent → Server Members Intent** pour ton bot "
                 "(Discord Developer Portal → Bot).",
@@ -2352,7 +2316,7 @@ class CategorySelect(discord.ui.View):
                 topic=f"Ticket de {ticket_subject} | {category}",
             )
         except discord.HTTPException as e:
-            return await interaction.followup.send(
+            return await interaction.response.send_message(
                 f"❌ Impossible de créer le salon : {e}", ephemeral=True
             )
 
@@ -2379,12 +2343,10 @@ class CategorySelect(discord.ui.View):
         embed.set_thumbnail(url=ticket_subject.display_avatar.url)
         embed.set_footer(text=f"ID utilisateur: {ticket_subject.id}")
 
-        ticket_view = TicketAdminPanel(ticket_subject.id, channel.id)
-        bot.add_view(ticket_view)
         creation_message = await channel.send(
             content=" ".join(mentions),
             embed=embed,
-            view=ticket_view,
+            view=TicketAdminPanel(ticket_subject.id, channel.id),
         )
         await creation_message.pin()
 
@@ -2405,16 +2367,8 @@ class CategorySelect(discord.ui.View):
         except discord.Forbidden:
             pass
 
-        # Delete the category message and send simple confirmation
-        try:
-            await interaction.message.delete()
-        except discord.NotFound:
-            pass
-        except discord.Forbidden:
-            pass
-        
-        await interaction.followup.send(
-            f"✅ Ticket créé : {channel.mention}\n\n💬 Décris maintenant ton problème.\n👨‍💼 Un membre du staff te répondra dès que possible.",
+        await interaction.response.send_message(
+            "✅ Ticket créé ! Réponds en MP au bot pour communiquer avec le staff.",
             ephemeral=True
         )
 
@@ -2441,119 +2395,15 @@ async def on_member_join(member: discord.Member):
     """Envoyer un message de support permanent quand un membre rejoint un serveur."""
     gid = str(member.guild.id)
     cfg = config.get("guilds", {}).get(gid)
+    
     if not cfg:
         return
-
+    
     # Store the guild_id for this user
     user_guild_map[str(member.id)] = gid
-
-    # Send panel instructions DM
-    await send_panel_instructions(member, member.guild)
-
-    # Send arrival message if configured for this guild
-    try:
-        gcfg = config.get("guilds", {}).get(gid, {})
-        arrival_id = gcfg.get("arrival_channel_id")
-        if arrival_id:
-            ch = bot.get_channel(int(arrival_id))
-            if isinstance(ch, discord.TextChannel):
-                color = discord.Color(int(str(gcfg.get("arrival_embed_color", "#2ecc71")).lstrip("#"), 16))
-                opts = gcfg.get("arrival_options", {})
-                description = f"Bienvenue sur le serveur Discord {member.guild.name}"
-                if opts.get("show_member_count"):
-                    description += f"\nNous sommes maintenant {member.guild.member_count} membres."
-                emb = discord.Embed(
-                    title="👋 Nouveau membre",
-                    description=description,
-                    color=color,
-                )
-                avatar_url = None
-                try:
-                    avatar_url = await _get_member_avatar_url(member)
-                except Exception:
-                    avatar_url = None
-                if avatar_url:
-                    emb.set_thumbnail(url=avatar_url)
-                await ch.send(content=member.mention, embed=emb)
-    except Exception:
-        pass
-
-    # Log l'arrivée du membre si activé
-    try:
-        await logs_manager.log_member_join(member)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_member_join: {e}")
-
-
-async def _get_member_avatar_url(member: discord.Member) -> str | None:
-    try:
-        return member.display_avatar.url
-    except AttributeError:
-        if member.guild:
-            try:
-                fetched = await member.guild.fetch_member(member.id)
-                return fetched.display_avatar.url
-            except (discord.NotFound, discord.HTTPException):
-                return None
-    return None
-
-
-@bot.event
-async def on_member_remove(member: discord.Member):
-    try:
-        gcfg = config.get("guilds", {}).get(str(member.guild.id), {})
-        departure_id = gcfg.get("departure_channel_id")
-        if departure_id:
-            ch = bot.get_channel(int(departure_id))
-            if isinstance(ch, discord.TextChannel):
-                color = discord.Color(int(str(gcfg.get("departure_embed_color", "#f04747")).lstrip("#"), 16))
-                opts = gcfg.get("departure_options", {})
-                description = f"À bientôt sur le serveur Discord {member.guild.name}"
-                emb = discord.Embed(
-                    title="👋 Départ",
-                    description=description,
-                    color=color,
-                )
-                if opts.get("show_old_name"):
-                    emb.add_field(name="Ancien nom", value=member.display_name, inline=False)
-                avatar_url = None
-                try:
-                    avatar_url = await _get_member_avatar_url(member)
-                except Exception:
-                    avatar_url = None
-                if avatar_url:
-                    emb.set_thumbnail(url=avatar_url)
-                await ch.send(content=member.mention, embed=emb)
-    except Exception:
-        pass
-
-    # Log le départ du membre si activé
-    try:
-        await logs_manager.log_member_leave(member)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_member_leave: {e}")
-
-
-@bot.event
-async def on_member_update(before: discord.Member, after: discord.Member):
-    """Log les changements de rôles si activé."""
-    if not after.guild:
-        return
-    try:
-        await logs_manager.log_role_change(before, after)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_role_change: {e}")
-
-
-@bot.event
-async def on_app_command_completion(interaction: discord.Interaction, command: discord.app_commands.Command):
-    """Log l'utilisation de commandes si activé."""
-    if not interaction.guild:
-        return
-    try:
-        await logs_manager.log_command_used(interaction, command.name)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_command_used: {e}")
+    
+    # Send support DM
+    await send_support_dm(member, member.guild)
 
 
 @bot.event
@@ -2638,28 +2488,6 @@ async def on_message(message: discord.Message):
                     await message.channel.send(embed=embed)
 
     await bot.process_commands(message)
-
-
-@bot.event
-async def on_message_delete(message: discord.Message):
-    """Log la suppression de messages si activé."""
-    if not message.guild:
-        return
-    try:
-        await logs_manager.log_message_delete(message)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_message_delete: {e}")
-
-
-@bot.event
-async def on_message_edit(before: discord.Message, after: discord.Message):
-    """Log la modification de messages si activé."""
-    if not after.guild:
-        return
-    try:
-        await logs_manager.log_message_edit(before, after)
-    except Exception as e:
-        print(f"❌ Erreur logs_manager.log_message_edit: {e}")
 
 
 def _discord_token_from_env() -> str:
