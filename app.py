@@ -1,19 +1,48 @@
-import json
 import os
+import json
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template
+import requests
+
+from flask import (
+    Flask,
+    jsonify,
+    render_template,
+    redirect,
+    request,
+    session
+)
 
 
 # ==========================
-# CONFIG
+# PATHS
 # ==========================
 
 BASE_DIR = Path(__file__).resolve().parent
 
-TICKETS_JSON_FILE = BASE_DIR / "tickets.json"
-PANELS_JSON_FILE = BASE_DIR / "panels.json"
 
+CONFIG_FILE = BASE_DIR / "config.json"
+
+
+# ==========================
+# STORE DATABASE
+# ==========================
+
+try:
+    import store
+    store.init_db()
+
+except Exception as e:
+    print(
+        f"⚠️ Erreur chargement store : {e}"
+    )
+    store = None
+
+
+
+# ==========================
+# FLASK
+# ==========================
 
 app = Flask(
     __name__,
@@ -22,164 +51,335 @@ app = Flask(
 )
 
 
+app.secret_key = os.getenv(
+    "FLASK_SECRET",
+    "ticketmp-secret-change"
+)
+
+
+
 # ==========================
-# JSON SYSTEM
+# ENV
 # ==========================
 
-def load_json(path: Path) -> dict:
+
+DISCORD_CLIENT_ID = os.getenv(
+    "DISCORD_CLIENT_ID"
+)
+
+DISCORD_CLIENT_SECRET = os.getenv(
+    "DISCORD_CLIENT_SECRET"
+)
+
+DISCORD_REDIRECT_URI = os.getenv(
+    "DISCORD_REDIRECT_URI",
+    "http://127.0.0.1:3000/callback"
+)
+
+
+
+# ==========================
+# JSON
+# ==========================
+
+
+def load_json(path):
 
     try:
 
         if not path.exists():
             return {}
 
-        content = path.read_text(
-            encoding="utf-8"
-        ).strip()
-
-        if not content:
-            return {}
-
-        data = json.loads(content)
-
-        if isinstance(data, dict):
-            return data
+        return json.loads(
+            path.read_text(
+                encoding="utf-8"
+            )
+        )
 
     except Exception as e:
 
         print(
-            f"⚠️ Erreur lecture JSON {path}: {e}"
+            f"⚠️ JSON {path}: {e}"
         )
 
-    return {}
+        return {}
 
-
-
-def save_json(path: Path, data: dict):
-
-    try:
-
-        path.write_text(
-            json.dumps(
-                data,
-                indent=4,
-                ensure_ascii=False
-            ),
-            encoding="utf-8"
-        )
-
-        return True
-
-    except Exception as e:
-
-        print(
-            f"❌ Erreur sauvegarde {path}: {e}"
-        )
-
-        return False
 
 
 
 # ==========================
-# STATS
+# DISCORD LOGIN
 # ==========================
 
-def ticket_counts(tickets: dict):
 
-    opened = 0
-    closed = 0
+@app.route("/login")
+def login():
 
-    for ticket in tickets.values():
-
-        if isinstance(ticket, dict):
-
-            if ticket.get("closed"):
-                closed += 1
-
-            else:
-                opened += 1
-
-    return opened, closed
-
-
-
-def count_panels(panels: dict):
-
-    total = 0
-
-    for value in panels.values():
-
-        if isinstance(value, list):
-            total += len(value)
-
-    return total
-
-
-
-# ==========================
-# WEB DASHBOARD
-# ==========================
-
-@app.route("/")
-def dashboard():
-
-    tickets = load_json(
-        TICKETS_JSON_FILE
-    )
-
-    panels = load_json(
-        PANELS_JSON_FILE
+    url = (
+        "https://discord.com/oauth2/authorize"
+        f"?client_id={DISCORD_CLIENT_ID}"
+        "&response_type=code"
+        f"&redirect_uri={DISCORD_REDIRECT_URI}"
+        "&scope=identify"
     )
 
 
-    opened, closed = ticket_counts(
-        tickets
+    return redirect(url)
+
+
+
+@app.route("/callback")
+def callback():
+
+
+    code = request.args.get(
+        "code"
     )
 
 
-    stats = {
+    if not code:
 
-        "tickets_open": opened,
+        return (
+            "Code Discord absent",
+            400
+        )
 
-        "tickets_closed": closed,
 
-        "panels": count_panels(
-            panels
-        ),
+
+    data = {
+
+        "client_id":
+            DISCORD_CLIENT_ID,
+
+        "client_secret":
+            DISCORD_CLIENT_SECRET,
+
+        "grant_type":
+            "authorization_code",
+
+        "code":
+            code,
+
+        "redirect_uri":
+            DISCORD_REDIRECT_URI
 
     }
 
 
-    return render_template(
-        "dashboard.html",
-        stats=stats,
-        tickets=tickets,
-        panels=panels
+
+    response = requests.post(
+
+        "https://discord.com/api/oauth2/token",
+
+        data=data,
+
+        headers={
+            "Content-Type":
+            "application/x-www-form-urlencoded"
+        }
+
     )
 
+
+
+    token = response.json()
+
+
+
+    if "access_token" not in token:
+
+        return jsonify(token),400
+
+
+
+    user_response = requests.get(
+
+        "https://discord.com/api/users/@me",
+
+        headers={
+
+            "Authorization":
+            f"Bearer {token['access_token']}"
+
+        }
+
+    )
+
+
+
+    user = user_response.json()
+
+
+    session["user"] = user
+
+
+
+    return redirect("/")
+
+
+
+
+
+# ==========================
+# DASHBOARD
+# ==========================
+
+
+@app.route("/")
+def dashboard():
+
+
+    if "user" not in session:
+
+        return render_template(
+            "login.html"
+        )
+
+
+
+    # Tickets SQLite
+
+    if store:
+
+        tickets = store.get_tickets_dict()
+
+        stats_db = store.stats_get()
+
+
+        opened = stats_db.get(
+            "opened",
+            0
+        )
+
+        closed = stats_db.get(
+            "closed",
+            0
+        )
+
+
+    else:
+
+        tickets = {}
+
+        opened = 0
+
+        closed = 0
+
+
+
+
+    panels_file = BASE_DIR / "panels.json"
+
+
+    panels = load_json(
+        panels_file
+    )
+
+
+
+    total_panels = 0
+
+
+    for value in panels.values():
+
+        if isinstance(value,list):
+
+            total_panels += len(value)
+
+
+
+    stats = {
+
+
+        "open":
+            opened,
+
+
+        "closed":
+            closed,
+
+
+        "panels":
+            total_panels
+
+    }
+
+
+
+    return render_template(
+
+        "dashboard.html",
+
+        stats=stats,
+
+        tickets=tickets,
+
+        panels=panels,
+
+        user=session["user"]
+
+    )
+
+
+
+
+
+# ==========================
+# TICKETS PAGE
+# ==========================
 
 
 @app.route("/tickets")
 def tickets_page():
 
+
+    if store:
+
+        tickets = store.get_tickets_dict()
+
+    else:
+
+        tickets = {}
+
+
+
     return render_template(
+
         "tickets.html",
-        tickets=load_json(
-            TICKETS_JSON_FILE
-        )
+
+        tickets=tickets
+
     )
 
+
+
+
+
+# ==========================
+# PANELS PAGE
+# ==========================
 
 
 @app.route("/panels")
 def panels_page():
 
-    return render_template(
-        "panels.html",
-        panels=load_json(
-            PANELS_JSON_FILE
-        )
+
+    panels = load_json(
+
+        BASE_DIR / "panels.json"
+
     )
+
+
+    return render_template(
+
+        "panels.html",
+
+        panels=panels
+
+    )
+
+
 
 
 
@@ -187,64 +387,88 @@ def panels_page():
 # API
 # ==========================
 
+
 @app.route("/api/status")
-def api_status():
+def status():
+
 
     return jsonify({
 
-        "status": "online",
+        "status":
+            "online",
 
-        "service": "TicketMP Dashboard",
+        "service":
+            "TicketMP Dashboard",
 
-        "version": "1.0"
+        "version":
+            "2.0"
+
 
     })
+
 
 
 
 @app.route("/api/tickets")
 def api_tickets():
 
-    return jsonify(
-        load_json(
-            TICKETS_JSON_FILE
+
+    if store:
+
+        return jsonify(
+            store.get_tickets_dict()
         )
-    )
+
+
+    return jsonify({})
+
+
 
 
 
 @app.route("/api/panels")
 def api_panels():
 
+
     return jsonify(
+
         load_json(
-            PANELS_JSON_FILE
+
+            BASE_DIR / "panels.json"
+
         )
+
     )
 
 
 
+
+
 # ==========================
-# START SOLO
+# START DIRECT
 # ==========================
+
 
 if __name__ == "__main__":
 
+
     port = int(
+
         os.getenv(
+
             "PORT",
+
             "3000"
+
         )
+
     )
 
 
-    print(
-        "🌐 TicketMP Dashboard lancé"
-    )
-
-    print(
-        f"📡 Port : {port}"
-    )
+    print("==============================")
+    print("🌐 TicketMP Dashboard lancé")
+    print(f"📡 Port : {port}")
+    print("==============================")
 
 
     app.run(
@@ -253,6 +477,8 @@ if __name__ == "__main__":
 
         port=port,
 
-        debug=False
+        debug=False,
+
+        use_reloader=False
 
     )
