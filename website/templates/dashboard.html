@@ -1,59 +1,117 @@
+```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Dashboard TicketMP</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard TicketMP</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+
 <div class="sidebar">
-    <h2>⚙ TicketMP Dashboard</h2>
+    <h2>⚙️ TicketMP</h2>
+
     <a href="/">📊 Dashboard</a>
     <a href="/tickets">🎫 Tickets</a>
     <a href="/panels">🧩 Panels</a>
-</div>
-<div class="main">
-    <h1>📊 Coup d’œil</h1>
-    <div class="cards">
-        <div class="card">🟢 Tickets ouverts<br>{{ stats.open }}</div>
-        <div class="card">🔴 Tickets fermés<br>{{ stats.closed }}</div>
-        <div class="card">🧩 Panels<br>{{ stats.panels }}</div>
+
+    {% if user %}
+    <div class="user-box">
+        <p><strong>{{ user.username }}</strong></p>
+        <a href="/logout">🚪 Déconnexion</a>
     </div>
+    {% endif %}
+</div>
+
+<div class="main">
+
+    <h1>📊 Tableau de bord</h1>
+
+    <div class="cards">
+        <div class="card">
+            <h3>🟢 Tickets ouverts</h3>
+            <span>{{ stats.open }}</span>
+        </div>
+
+        <div class="card">
+            <h3>🔴 Tickets fermés</h3>
+            <span>{{ stats.closed }}</span>
+        </div>
+
+        <div class="card">
+            <h3>🧩 Panels</h3>
+            <span>{{ stats.panels }}</span>
+        </div>
+    </div>
+
     <section>
-        <h2>📦 Tickets</h2>
+
+        <h2>🎫 Tickets récents</h2>
+
         {% if tickets %}
+
             {% for uid, ticket in tickets.items() %}
+
             <div class="ticket">
-                <div>
-                    <strong>{{ uid }}</strong><br>
-                    Guild: {{ ticket.guild_id or '—' }}<br>
-                    Channel: {{ ticket.channel_id or '—' }}<br>
-                    Catégorie: {{ ticket.category or '—' }}<br>
-                    Via: {{ ticket.via or '—' }}
-                </div>
+
+                <strong>Utilisateur :</strong> {{ uid }}<br>
+
+                <strong>Serveur :</strong>
+                {{ ticket.guild_id or "—" }}
+                <br>
+
+                <strong>Salon :</strong>
+                {{ ticket.channel_id or "—" }}
+                <br>
+
+                <strong>Catégorie :</strong>
+                {{ ticket.category or "—" }}
+                <br>
+
+                <strong>Créé via :</strong>
+                {{ ticket.via or "—" }}
+
             </div>
+
             {% endfor %}
+
         {% else %}
-            <p>Aucun ticket trouvé dans <code>tickets.json</code>.</p>
+
+            <p>Aucun ticket trouvé.</p>
+
         {% endif %}
+
     </section>
+
+
     <section>
-        <h2>🧩 Aperçu des panels</h2>
+
+        <h2>🧩 Panels</h2>
+
         {% if panels %}
-            <p>{{ stats.panels }} panel(s) chargés depuis <code>panels.json</code>.</p>
+
+            <p>
+                {{ stats.panels }}
+                panel(s) chargé(s).
+            </p>
+
         {% else %}
-            <p>Aucun panel trouvé dans <code>panels.json</code>.</p>
+
+            <p>Aucun panel trouvé.</p>
+
         {% endif %}
+
     </section>
-</div>
-</body>
-</html>
-    {% endfor %}
 
 </div>
 
 </body>
 </html>
+```
