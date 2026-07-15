@@ -7,7 +7,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>{{ guild.name }} - TicketMP</title>
+<title>{{ guild.name }} - TicketMP Dashboard</title>
 
 <link rel="stylesheet" href="/static/style.css">
 
@@ -20,11 +20,11 @@
 <div class="container">
 
 
-<div class="card">
+<div class="card server-dashboard">
 
 
 
-<!-- HEADER -->
+<!-- HEADER SERVEUR -->
 
 <div class="server-header">
 
@@ -38,61 +38,49 @@ src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png"
 
 {% else %}
 
-<div class="server-icon"
-style="
-background:#5865F2;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:35px;
-">
-
+<div class="server-icon default-icon">
 💬
-
 </div>
 
 {% endif %}
 
 
 
-<div>
+<div class="server-info">
 
 
 <h1>
-⚙️ {{ guild.name }}
+{{ guild.name }}
 </h1>
 
 
 <p>
-Centre de configuration TicketMP
+⚙️ Centre de configuration TicketMP
 </p>
 
 
-<div style="margin-top:15px;">
+
+<div class="server-status">
 
 
 <span class="badge online">
-
-🟢 Bot actif
-
+🟢 Bot connecté
 </span>
+
 
 
 {% if guild.owner %}
 
-<span class="badge">
-
+<span class="badge owner">
 👑 Propriétaire
-
 </span>
 
 
 {% elif guild.administrator %}
 
-<span class="badge">
 
+<span class="badge admin">
 🛡️ Administrateur
-
 </span>
 
 
@@ -102,11 +90,12 @@ Centre de configuration TicketMP
 </div>
 
 
-</div>
-
-
 
 </div>
+
+
+</div>
+
 
 
 
@@ -117,19 +106,14 @@ Centre de configuration TicketMP
 
 
 
-<!-- TITRE -->
-
-
 <h2>
-
-🤖 Configuration TicketMP
-
+🤖 Modules TicketMP
 </h2>
 
 
-<p style="color:#9aa4c0;margin-top:10px;">
+<p class="description">
 
-Configure toutes les fonctionnalités du bot pour ce serveur.
+Configure chaque partie du bot depuis ce panneau.
 
 </p>
 
@@ -138,7 +122,19 @@ Configure toutes les fonctionnalités du bot pour ce serveur.
 
 
 
-<!-- CONFIGURATION PRINCIPALE -->
+
+<!-- =====================
+     TICKETS
+===================== -->
+
+
+<div class="config-category">
+
+
+<h3>
+🎫 Système de tickets
+</h3>
+
 
 
 <div class="config-grid">
@@ -149,18 +145,27 @@ Configure toutes les fonctionnalités du bot pour ce serveur.
 class="config-card">
 
 
-<h3>
-🎫 Tickets
-</h3>
+<div class="icon">
+🎫
+</div>
+
+
+<h4>
+Gestion des tickets
+</h4>
 
 
 <p>
-Créer et gérer le système de tickets, catégories, salons et permissions.
+Création, fermeture, catégories et permissions.
 </p>
 
 
-</a>
+<span class="config-button">
+Configurer →
+</span>
 
+
+</a>
 
 
 
@@ -169,212 +174,24 @@ Créer et gérer le système de tickets, catégories, salons et permissions.
 class="config-card">
 
 
-<h3>
-📋 Panel Ticket
-</h3>
+<div class="icon">
+📋
+</div>
+
+
+<h4>
+Panel Ticket
+</h4>
 
 
 <p>
-Créer un panel avec boutons, embeds et menus déroulants.
+Créer les boutons et menus de ticket.
 </p>
 
 
-</a>
-
-
-
-
-
-<a href="/server/{{ guild.id }}/settings"
-class="config-card">
-
-
-<h3>
-⚙️ Paramètres généraux
-</h3>
-
-
-<p>
-Préfixe, langue, comportement général du bot.
-</p>
-
-
-</a>
-
-
-
-
-
-<a href="#"
-class="config-card">
-
-
-<h3>
-🛡️ Sécurité
-</h3>
-
-
-<p>
-Anti raid, anti spam, protection des commandes.
-</p>
-
-
-</a>
-
-
-
-
-
-<a href="#"
-class="config-card">
-
-
-<h3>
-📢 Logs Discord
-</h3>
-
-
-<p>
-Messages, actions staff, ouvertures et fermetures de tickets.
-</p>
-
-
-</a>
-
-
-
-
-
-<a href="#"
-class="config-card">
-
-
-<h3>
-👥 Staff & Permissions
-</h3>
-
-
-<p>
-Configurer les rôles autorisés et les accès.
-</p>
-
-
-</a>
-
-
-
-
-
-<a href="#"
-class="config-card">
-
-
-<h3>
-🔔 Notifications
-</h3>
-
-
-<p>
-Messages automatiques, annonces et alertes.
-</p>
-
-
-</a>
-
-
-
-
-
-<a href="#"
-class="config-card">
-
-
-<h3>
-🎨 Personnalisation
-</h3>
-
-
-<p>
-Couleurs, emojis, embeds et apparence du bot.
-</p>
-
-
-</a>
-
-
-
-
-
-<a href="#"
-class="config-card">
-
-
-<h3>
-📊 Statistiques
-</h3>
-
-
-<p>
-Voir les statistiques des tickets du serveur.
-</p>
-
-
-</a>
-
-
-
-
-
-<a href="#"
-class="config-card">
-
-
-<h3>
-🤖 AutoMod
-</h3>
-
-
-<p>
-Filtres automatiques et modération intelligente.
-</p>
-
-
-</a>
-
-
-
-
-<a href="#"
-class="config-card">
-
-
-<h3>
-🌐 Web Dashboard
-</h3>
-
-
-<p>
-Gestion avancée depuis le site TicketMP.
-</p>
-
-
-</a>
-
-
-
-
-<a href="#"
-class="config-card">
-
-
-<h3>
-🔧 Maintenance
-</h3>
-
-
-<p>
-Options avancées du bot.
-</p>
+<span class="config-button">
+Configurer →
+</span>
 
 
 </a>
@@ -382,6 +199,269 @@ Options avancées du bot.
 
 
 </div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- =====================
+     BOT
+===================== -->
+
+
+<div class="config-category">
+
+
+<h3>
+🤖 Configuration du bot
+</h3>
+
+
+
+<div class="config-grid">
+
+
+
+<a href="/server/{{ guild.id }}/settings"
+class="config-card">
+
+
+<div class="icon">
+⚙️
+</div>
+
+
+<h4>
+Paramètres généraux
+</h4>
+
+
+<p>
+Langue, comportement et options principales.
+</p>
+
+
+<span class="config-button">
+Configurer →
+</span>
+
+
+</a>
+
+
+
+
+<a href="#"
+class="config-card">
+
+
+<div class="icon">
+🎨
+</div>
+
+
+<h4>
+Personnalisation
+</h4>
+
+
+<p>
+Couleurs, messages et apparence.
+</p>
+
+
+<span class="config-button">
+Configurer →
+</span>
+
+
+</a>
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- =====================
+     SECURITE
+===================== -->
+
+
+<div class="config-category">
+
+
+<h3>
+🛡️ Sécurité & Modération
+</h3>
+
+
+<div class="config-grid">
+
+
+
+<a href="#"
+class="config-card">
+
+
+<div class="icon">
+🚨
+</div>
+
+
+<h4>
+Anti Raid
+</h4>
+
+
+<p>
+Protection contre les attaques serveur.
+</p>
+
+
+<span class="config-button">
+Configurer →
+</span>
+
+
+</a>
+
+
+
+
+<a href="#"
+class="config-card">
+
+
+<div class="icon">
+🤖
+</div>
+
+
+<h4>
+AutoMod
+</h4>
+
+
+<p>
+Filtres automatiques et modération.
+</p>
+
+
+<span class="config-button">
+Configurer →
+</span>
+
+
+</a>
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- =====================
+     LOGS
+===================== -->
+
+
+<div class="config-category">
+
+
+<h3>
+📢 Logs & Notifications
+</h3>
+
+
+<div class="config-grid">
+
+
+
+<a href="#"
+class="config-card">
+
+
+<div class="icon">
+📢
+</div>
+
+
+<h4>
+Logs Discord
+</h4>
+
+
+<p>
+Actions staff, tickets et événements.
+</p>
+
+
+<span class="config-button">
+Configurer →
+</span>
+
+
+</a>
+
+
+
+
+<a href="#"
+class="config-card">
+
+
+<div class="icon">
+🔔
+</div>
+
+
+<h4>
+Notifications
+</h4>
+
+
+<p>
+Messages automatiques du bot.
+</p>
+
+
+<span class="config-button">
+Configurer →
+</span>
+
+
+</a>
+
+
+
+</div>
+
+
+</div>
+
 
 
 
@@ -394,72 +474,60 @@ Options avancées du bot.
 
 
 
-
-<!-- INFORMATIONS -->
-
-
 <h2>
-
 📌 Informations serveur
-
 </h2>
 
 
 
-<div class="info">
+<div class="info-box">
 
 
+<div>
 
-<p>
-
-🆔 ID serveur :
+🆔 ID
 
 <strong>
 {{ guild.id }}
 </strong>
 
-</p>
+</div>
 
 
 
+<div>
 
-<p>
+👑 Propriétaire
 
-👑 Propriétaire :
+<strong>
 
 {% if guild.owner %}
-
-<span style="color:#57F287;">
 Oui
-</span>
-
 {% else %}
-
 Non
-
 {% endif %}
 
-</p>
+</strong>
+
+</div>
 
 
 
+<div>
 
-<p>
+🛡️ Permissions
 
-🛡️ Permission :
+<strong>
 
 {% if guild.administrator %}
-
 Administrateur
-
 {% else %}
-
 Gestion serveur
-
 {% endif %}
 
-</p>
+</strong>
 
+</div>
 
 
 </div>
@@ -469,9 +537,7 @@ Gestion serveur
 
 
 
-
 <br>
-
 
 
 
@@ -491,7 +557,7 @@ class="button secondary">
 </div>
 
 
-</body>
 
+</body>
 
 </html>
