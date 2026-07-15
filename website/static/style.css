@@ -2,35 +2,30 @@
 
     --bg:#070914;
 
-    --panel:rgba(20,24,38,.85);
-    --panel-2:#111626;
-    --panel-hover:#20283d;
+    --card:#111626;
+
+    --card-hover:#182039;
 
     --text:#ffffff;
+
     --muted:#9aa4c0;
 
 
     --accent:#5865F2;
-    --accent-light:#7289ff;
+
+    --purple:#8b5cf6;
 
     --success:#57F287;
-    --danger:#ED4245;
-    --warning:#FEE75C;
 
 
     --border:rgba(255,255,255,.08);
 
-    --shadow:
-    0 20px 50px rgba(0,0,0,.45);
-
-    --radius:20px;
 }
 
 
-
-/* =========================
-   RESET
-========================= */
+/* =====================
+ RESET
+===================== */
 
 *{
     margin:0;
@@ -42,838 +37,71 @@
 body{
 
     font-family:
-    "Inter",
+    Inter,
     Arial,
     sans-serif;
 
-
     background:
     radial-gradient(
-        circle at top left,
+        circle at top,
         rgba(88,101,242,.18),
-        transparent 35%
+        transparent 40%
     ),
     var(--bg);
 
 
-    color:var(--text);
+    color:white;
 
     min-height:100vh;
 
 }
 
 
-
-/* =========================
-   SCROLLBAR
-========================= */
-
-
-::-webkit-scrollbar{
-    width:8px;
-}
-
-
-::-webkit-scrollbar-track{
-    background:#080a12;
-}
-
-
-::-webkit-scrollbar-thumb{
-
-    background:
-    linear-gradient(
-        var(--accent),
-        #8b5cf6
-    );
-
-    border-radius:20px;
-
-}
-
-
-
-/* =========================
-   SIDEBAR
-========================= */
-
-
-.sidebar{
-
-
-    position:fixed;
-
-    top:0;
-    left:0;
-
-
-    width:280px;
-
-    height:100vh;
-
-
-    padding:30px 22px;
-
-
-    background:
-    linear-gradient(
-        180deg,
-        rgba(21,25,40,.95),
-        rgba(10,12,20,.95)
-    );
-
-
-    backdrop-filter:blur(20px);
-
-
-    border-right:
-    1px solid var(--border);
-
-
-    box-shadow:
-    10px 0 40px rgba(0,0,0,.3);
-
-
-
-    display:flex;
-
-    flex-direction:column;
-
-}
-
-
-
-.sidebar h2{
-
-
-    font-size:26px;
-
-    font-weight:800;
-
-    margin-bottom:45px;
-
-
-    background:
-    linear-gradient(
-        90deg,
-        #5865F2,
-        #8b5cf6
-    );
-
-
-    -webkit-background-clip:text;
-
-    color:transparent;
-
-}
-
-
-
-
-
-.sidebar a{
-
-
-    display:flex;
-
-    align-items:center;
-
-    gap:12px;
-
-
-    color:var(--text);
-
-
-    text-decoration:none;
-
-
-    padding:15px 18px;
-
-
-    margin-bottom:10px;
-
-
-    border-radius:16px;
-
-
-    font-weight:600;
-
-
-    transition:.25s;
-
-
-}
-
-
-
-
-.sidebar a:hover{
-
-
-    background:
-    rgba(88,101,242,.15);
-
-
-    transform:
-    translateX(8px);
-
-
-}
-
-
-
-
-
-.sidebar a.active{
-
-
-    background:
-    linear-gradient(
-        135deg,
-        var(--accent),
-        #8b5cf6
-    );
-
-
-    box-shadow:
-    0 10px 25px
-    rgba(88,101,242,.4);
-
-
-}
-
-
-
-
-
-/* =========================
- USER PROFILE
-========================= */
-
-
-.user-box{
-
-
-    margin-top:auto;
-
-
-    background:
-    rgba(255,255,255,.04);
-
-
-    border:
-    1px solid var(--border);
-
-
-    padding:22px;
-
-
-    border-radius:22px;
-
-
-    text-align:center;
-
-
-}
-
-
-
-.avatar{
-
-
-    width:85px;
-
-    height:85px;
-
-
-    border-radius:50%;
-
-
-    border:
-    4px solid var(--accent);
-
-
-    margin-bottom:15px;
-
-
-}
-
-
-
-
-
-.user-box strong{
-
-    font-size:18px;
-
-}
-
-
-
-
-
-.user-box a{
-
-
-    margin-top:15px;
-
-
-    background:
-    rgba(237,66,69,.15);
-
-
-    color:#ff7676;
-
-
-}
-
-
-
-
-
-/* =========================
- MAIN
-========================= */
-
-
-.main{
-
-
-    margin-left:280px;
-
-
-    padding:45px;
-
-
-}
-
-
-
-
-
-.main h1{
-
-
-    font-size:38px;
-
-
-    margin-bottom:35px;
-
-
-}
-
-
-
-
-
-/* =========================
- CARDS
-========================= */
-
-
-.cards{
-
-
-    display:grid;
-
-
-    grid-template-columns:
-    repeat(
-        auto-fit,
-        minmax(240px,1fr)
-    );
-
-
-    gap:25px;
-
-
-}
-
-
-
-
-
-.card{
-
-
-    background:
-    linear-gradient(
-        145deg,
-        rgba(255,255,255,.06),
-        rgba(255,255,255,.02)
-    );
-
-
-    backdrop-filter:blur(15px);
-
-
-
-    border:
-    1px solid var(--border);
-
-
-
-    padding:30px;
-
-
-    border-radius:24px;
-
-
-    box-shadow:var(--shadow);
-
-
-    transition:.3s;
-
-
-}
-
-
-
-
-.card:hover{
-
-
-    transform:
-    translateY(-8px);
-
-
-    border-color:
-    rgba(88,101,242,.5);
-
-
-}
-
-
-
-
-
-.card h3{
-
-
-    color:var(--muted);
-
-
-    font-size:15px;
-
-
-    margin-bottom:20px;
-
-
-}
-
-
-
-
-
-.card span{
-
-
-    font-size:45px;
-
-
-    font-weight:800;
-
-
-    color:white;
-
-
-}
-
-
-
-
-
-/* =========================
- SECTIONS
-========================= */
-
-
-section{
-
-
-    margin-top:35px;
-
-
-    background:
-    rgba(20,24,38,.85);
-
-
-    border:
-    1px solid var(--border);
-
-
-    padding:30px;
-
-
-    border-radius:25px;
-
-
-    box-shadow:var(--shadow);
-
-
-}
-
-
-
-
-
-section h2{
-
-
-    margin-bottom:25px;
-
-
-}
-
-
-
-
-
-/* =========================
- TICKETS
-========================= */
-
-
-.ticket{
-
-
-    background:
-    var(--panel-2);
-
-
-
-    border:
-
-    1px solid var(--border);
-
-
-
-    border-left:
-
-    5px solid var(--accent);
-
-
-
-    padding:22px;
-
-
-    border-radius:18px;
-
-
-    margin-bottom:15px;
-
-
-    transition:.25s;
-
-
-}
-
-
-
-
-
-.ticket:hover{
-
-
-    background:
-
-    var(--panel-hover);
-
-
-
-    transform:
-
-    translateX(5px);
-
-
-}
-
-
-
-
-
-/* =========================
- SERVER CARD
-========================= */
-
-
-.server-card{
-
-
-    background:
-    var(--panel);
-
-
-
-    padding:25px;
-
-
-    border-radius:22px;
-
-
-    border:
-    1px solid var(--border);
-
-
-
-    transition:.3s;
-
-
-}
-
-
-
-
-.server-card:hover{
-
-
-    transform:
-    translateY(-6px);
-
-
-    border-color:
-    var(--accent);
-
-
-}
-
-
-
-
-
-.server-icon{
-
-
-    width:70px;
-
-    height:70px;
-
-
-    border-radius:50%;
-
-
-    margin-bottom:15px;
-
-
-}
-
-
-
-
-
-.badge{
-
-
-    display:inline-block;
-
-
-    padding:6px 12px;
-
-
-    border-radius:20px;
-
-
-    font-size:13px;
-
-
-    font-weight:700;
-
-
-}
-
-
-
-
-.badge.online{
-
-
-    background:
-    rgba(87,242,135,.15);
-
-
-    color:
-    var(--success);
-
-
-}
-
-
-
-
-
-/* =========================
- INPUT
-========================= */
-
-
-input,
-select,
-textarea{
-
-
-    width:100%;
-
-
-    padding:15px;
-
-
-    border-radius:16px;
-
-
-    background:
-    var(--panel-2);
-
-
-    color:white;
-
-
-    border:
-    1px solid var(--border);
-
-
-}
-
-
-
-
-
-input:focus,
-textarea:focus,
-select:focus{
-
-
-    outline:none;
-
-
-    border-color:
-    var(--accent);
-
-
-    box-shadow:
-    0 0 0 4px
-    rgba(88,101,242,.2);
-
-
-}
-
-
-
-
-
-/* =========================
- BUTTON
-========================= */
-
-
-button,
-.btn{
-
-
-    background:
-    linear-gradient(
-        135deg,
-        var(--accent),
-        #8b5cf6
-    );
-
-
-    color:white;
-
-
-    padding:14px 25px;
-
-
-    border-radius:15px;
-
-
-    border:none;
-
-
-    font-weight:700;
-
-
-    cursor:pointer;
-
-
-    transition:.25s;
-
-
-}
-
-
-
-
-
-button:hover,
-.btn:hover{
-
-
-    transform:
-    translateY(-3px);
-
-
-    box-shadow:
-    0 10px 25px
-    rgba(88,101,242,.4);
-
-
-}
-
-
-
-
-/* =========================
- MOBILE
-========================= */
-
-
-@media(max-width:900px){
-
-
-.sidebar{
-
-    position:relative;
-
-    width:100%;
-
-    height:auto;
-
-}
-
-
-
-.main{
-
-    margin-left:0;
-
-    padding:25px;
-
-}
-
-
-}
-
-/* ==================================================
-   SERVER DASHBOARD
-================================================== */
+/* =====================
+ CONTAINER
+===================== */
 
 
 .container{
 
     width:100%;
+
     max-width:1400px;
 
     margin:auto;
 
-    padding:50px 40px;
+    padding:40px;
 
 }
 
 
+/* =====================
+ MAIN CARD
+===================== */
 
-/* =========================
+
+.card{
+
+    background:
+    rgba(17,22,38,.95);
+
+
+    border:
+    1px solid var(--border);
+
+
+    border-radius:28px;
+
+
+    padding:35px;
+
+
+}
+
+
+/* =====================
  HEADER SERVEUR
-========================= */
+===================== */
 
 
 .server-header{
@@ -882,48 +110,66 @@ button:hover,
 
     align-items:center;
 
-    gap:35px;
+    gap:30px;
 
-    padding:35px;
+
+    padding:30px;
+
 
     background:
     linear-gradient(
-        145deg,
+        135deg,
         rgba(88,101,242,.15),
         rgba(139,92,246,.08)
     );
 
-    border:
 
-    1px solid rgba(255,255,255,.1);
+    border-radius:25px;
 
-    border-radius:30px;
 
-    box-shadow:
-
-    0 20px 60px rgba(0,0,0,.35);
+    border:1px solid var(--border);
 
 }
 
 
 
+.server-icon{
+
+
+    width:120px;
+
+    height:120px;
+
+
+    object-fit:cover;
+
+
+    border-radius:30px;
+
+
+    border:4px solid var(--accent);
+
+
+    box-shadow:
+    0 0 25px rgba(88,101,242,.45);
+
+}
+
+
 
 .server-header h1{
 
-    font-size:46px;
 
-    font-weight:950;
+    font-size:42px;
 
-    letter-spacing:-2px;
+    font-weight:900;
 
 
     background:
-
     linear-gradient(
         90deg,
         #5865F2,
-        #a855f7,
-        #ec4899
+        #8b5cf6
     );
 
 
@@ -937,64 +183,19 @@ button:hover,
 
 .server-header p{
 
-    color:#9aa4c0;
+    margin-top:8px;
+
+    color:var(--muted);
 
     font-size:18px;
 
-    margin-top:10px;
-
 }
 
 
 
-/* =========================
- LOGO DISCORD
-========================= */
-
-
-.server-icon{
-
-    width:130px;
-
-    height:130px;
-
-    object-fit:cover;
-
-
-    border-radius:35%;
-
-
-    border:
-
-    5px solid #5865F2;
-
-
-    box-shadow:
-
-    0 0 50px rgba(88,101,242,.7);
-
-
-    transition:.4s;
-
-}
-
-
-
-.server-icon:hover{
-
-    transform:
-
-    scale(1.08)
-    rotate(4deg);
-
-
-}
-
-
-
-/* =========================
+/* =====================
  BADGES
-========================= */
+===================== */
 
 
 .badge{
@@ -1004,32 +205,30 @@ button:hover,
 
     align-items:center;
 
-    gap:6px;
+
+    padding:8px 15px;
 
 
-    padding:8px 16px;
+    margin-top:15px;
 
 
     margin-right:8px;
 
 
-    border-radius:30px;
+    border-radius:20px;
 
 
     background:
-
-    rgba(255,255,255,.08);
+    rgba(255,255,255,.06);
 
 
     border:
+    1px solid var(--border);
 
-    1px solid rgba(255,255,255,.1);
-
-
-    font-weight:700;
 
     font-size:14px;
 
+    font-weight:700;
 
 }
 
@@ -1038,68 +237,48 @@ button:hover,
 .badge.online{
 
 
+    color:var(--success);
+
+
     background:
-
-    rgba(87,242,135,.15);
-
-
-    color:#57F287;
-
+    rgba(87,242,135,.12);
 
 }
 
 
-
-/* ==================================================
- CATEGORIES
-================================================== */
-
-
-.config-category{
+/* =====================
+ TITRES
+===================== */
 
 
-    margin-top:45px;
-
-
-    padding:35px;
-
-
-    background:
-
-
-    rgba(255,255,255,.035);
-
-
-    border:
-
-    1px solid rgba(255,255,255,.08);
-
-
-    border-radius:32px;
-
-
-}
-
-
-
-.config-category h2{
-
-
-    display:flex;
-
-    align-items:center;
-
-    gap:12px;
-
+h2{
 
     font-size:28px;
 
-    margin-bottom:30px;
+    font-weight:900;
 
+    margin-top:35px;
 
 }
 
 
+hr{
+
+    border:none;
+
+    height:1px;
+
+    background:var(--border);
+
+    margin:35px 0;
+
+}
+
+
+
+/* =====================
+ CONFIG GRID
+===================== */
 
 
 .config-grid{
@@ -1109,24 +288,24 @@ button:hover,
 
 
     grid-template-columns:
-
     repeat(
         auto-fit,
-        minmax(280px,1fr)
+        minmax(260px,1fr)
     );
 
 
-    gap:25px;
+    gap:20px;
 
+
+    margin-top:25px;
 
 }
 
 
 
-
-/* =========================
- CARTE CONFIG
-========================= */
+/* =====================
+ CONFIG BUTTON
+===================== */
 
 
 .config-card{
@@ -1134,16 +313,17 @@ button:hover,
 
     position:relative;
 
+
     overflow:hidden;
 
 
-    min-height:190px;
+    min-height:170px;
 
 
-    padding:30px;
+    padding:25px;
 
 
-    border-radius:28px;
+    border-radius:22px;
 
 
     text-decoration:none;
@@ -1153,76 +333,35 @@ button:hover,
 
 
     background:
-
-
     linear-gradient(
         145deg,
-        rgba(88,101,242,.18),
-        rgba(139,92,246,.08)
+        #151b30,
+        #101525
     );
 
 
     border:
-
-    1px solid rgba(255,255,255,.1);
-
-
-    transition:.35s;
+    1px solid var(--border);
 
 
-}
-
-
-
-.config-card::after{
-
-
-    content:"";
-
-
-    position:absolute;
-
-
-    width:160px;
-
-    height:160px;
-
-
-    right:-50px;
-
-    bottom:-50px;
-
-
-    background:
-
-
-    radial-gradient(
-        circle,
-        rgba(88,101,242,.5),
-        transparent 70%
-    );
+    transition:
+    transform .2s ease,
+    border-color .2s ease;
 
 
 }
+
 
 
 
 .config-card h3{
 
 
-    position:relative;
-
-    z-index:2;
-
-
-    font-size:23px;
-
+    font-size:21px;
 
     font-weight:900;
 
-
-    margin-bottom:15px;
-
+    margin-bottom:12px;
 
 }
 
@@ -1231,50 +370,77 @@ button:hover,
 .config-card p{
 
 
-    position:relative;
+    color:var(--muted);
 
-    z-index:2;
-
-
-    color:#b4bdd8;
-
-
-    line-height:1.6;
+    line-height:1.5;
 
 }
 
 
-
-/* hover */
 
 
 .config-card:hover{
 
 
     transform:
-
-    translateY(-12px);
-
-
-    border-color:#5865F2;
+    translateY(-5px);
 
 
-    box-shadow:
+    border-color:
+    var(--accent);
 
 
-    0 25px 60px
-
-    rgba(88,101,242,.35);
-
+    background:
+    var(--card-hover);
 
 }
 
 
 
 
-/* ==================================================
- BOUTONS
-================================================== */
+/* =====================
+ INFO
+===================== */
+
+
+.info{
+
+
+    margin-top:20px;
+
+
+    padding:25px;
+
+
+    background:
+    #101525;
+
+
+    border-radius:22px;
+
+
+    border:
+    1px solid var(--border);
+
+
+}
+
+
+
+.info p{
+
+
+    padding:12px 0;
+
+
+    color:#dbe1ff;
+
+}
+
+
+/* =====================
+ BUTTONS
+===================== */
 
 
 .button{
@@ -1285,51 +451,35 @@ button:hover,
 
     align-items:center;
 
+
     justify-content:center;
 
 
-    gap:10px;
-
-
     padding:
-
-    16px 32px;
-
-
-    border-radius:20px;
+    14px 28px;
 
 
-    text-decoration:none;
+    border-radius:18px;
 
 
-    font-size:17px;
-
-
-    font-weight:900;
+    background:
+    linear-gradient(
+        135deg,
+        var(--accent),
+        var(--purple)
+    );
 
 
     color:white;
 
 
-    background:
+    font-weight:800;
 
 
-    linear-gradient(
-        135deg,
-        #5865F2,
-        #8b5cf6
-    );
+    text-decoration:none;
 
 
-    box-shadow:
-
-
-    0 15px 35px
-
-    rgba(88,101,242,.4);
-
-
-    transition:.3s;
+    transition:.2s;
 
 
 }
@@ -1340,16 +490,7 @@ button:hover,
 
 
     transform:
-
-    translateY(-6px);
-
-
-    box-shadow:
-
-
-    0 25px 50px
-
-    rgba(88,101,242,.6);
+    translateY(-3px);
 
 
 }
@@ -1360,87 +501,33 @@ button:hover,
 
 
     background:
-
-
-    rgba(255,255,255,.08);
-
-
-    border:
-
-    1px solid rgba(255,255,255,.15);
-
-
-}
-
-
-
-/* ==================================================
- INFORMATIONS
-================================================== */
-
-
-.info{
-
-
-    background:
-
-
-    linear-gradient(
-        145deg,
-        rgba(255,255,255,.06),
-        rgba(255,255,255,.02)
-    );
-
-
-    border-radius:25px;
-
-
-    padding:30px;
+    rgba(255,255,255,.07);
 
 
     border:
-
-    1px solid rgba(255,255,255,.08);
-
+    1px solid var(--border);
 
 }
 
 
 
-.info p{
-
-
-    padding:14px 0;
-
-
-    font-size:16px;
-
-
-    color:#dbe1ff;
-
-
-}
-
-
-
-.info strong{
-
-
-    color:white;
-
-}
-
-
-
-/* ==================================================
+/* =====================
  MOBILE
-================================================== */
+===================== */
 
 
 @media(max-width:700px){
 
 
 .container{
+
+    padding:15px;
+
+}
+
+
+
+.card{
 
     padding:20px;
 
@@ -1460,7 +547,7 @@ button:hover,
 
 .server-header h1{
 
-    font-size:32px;
+    font-size:30px;
 
 }
 
@@ -1473,14 +560,12 @@ button:hover,
 }
 
 
-
 .server-icon{
 
-    width:95px;
+    width:90px;
 
-    height:95px;
+    height:90px;
 
 }
-
 
 }
