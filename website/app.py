@@ -320,158 +320,240 @@ def login():
 
 
 # ==================================================
-# CALLBACK
+# CALLBACK DISCORD
 # ==================================================
 
 @app.route("/callback")
 def callback():
 
 
-    code = request.args.get(
-        "code"
-    )
+    code = request.args.get("code")
 
 
     if not code:
 
-        return "Code Discord absent",400
+        return "❌ Code Discord absent", 400
 
 
 
+    try:
 
-    token_request = requests.post(
 
-        "https://discord.com/api/oauth2/token",
+        # ==========================
+        # TOKEN DISCORD
+        # ==========================
 
-        data={
+        token_request = requests.post(
 
+            "https://discord.com/api/oauth2/token",
 
-            "client_id":
-            DISCORD_CLIENT_ID,
+            data={
 
+                "client_id": DISCORD_CLIENT_ID,
 
-            "client_secret":
-            DISCORD_CLIENT_SECRET,
+                "client_secret": DISCORD_CLIENT_SECRET,
 
+                "grant_type": "authorization_code",
 
-            "grant_type":
-            "authorization_code",
+                "code": code,
 
+                "redirect_uri": DISCORD_REDIRECT_URI
 
-            "code":
-            code,
+            },
 
+            headers={
 
-            "redirect_uri":
-            DISCORD_REDIRECT_URI
+                "Content-Type":
+                "application/x-www-form-urlencoded"
 
-        },
+            },
 
+            timeout=10
 
-        timeout=10
-
-    )
-
-
-
-    token = token_request.json()
-
-
-
-    if "access_token" not in token:
-
-        return jsonify(token),400
-
-
-
-
-    access_token = token["access_token"]
-
-
-
-
-
-    user = discord_get(
-
-        "https://discord.com/api/users/@me",
-
-        access_token
-
-    )
-
-
-
-    if not user:
-
-        return "Erreur utilisateur Discord",400
-
-
-
-
-    session.clear()
-
-
-
-    session["user"] = {
-
-
-        "id":
-        user["id"],
-
-
-        "username":
-        user["username"],
-
-
-        "avatar":
-        user.get("avatar")
-
-
-    }
-
-
-
-
-
-    servers=[]
-
-
-    for guild in get_user_guilds(access_token):
-
-
-        data = format_guild(
-            guild
         )
 
 
-        if data["can_manage"]:
 
-            servers.append(
-                data
+        token = token_request.json()
+
+
+
+        if "access_token" not in token:
+
+
+            print(
+                "❌ Token Discord invalide:",
+                token
+            )
+
+
+            return jsonify(token),400
+
+
+
+        access_token = token["access_token"]
+
+
+
+
+
+        # ==========================
+        # UTILISATEUR DISCORD
+        # ==========================
+
+
+        user = discord_get(
+
+            "https://discord.com/api/users/@me",
+
+            access_token
+
+        )
+
+
+
+        if not user:
+
+
+            return (
+                "❌ Impossible de récupérer le profil Discord",
+                400
             )
 
 
 
 
-    session["guilds"] = servers
 
-
-    session.permanent=True
-
-
-
-    print(
-        f"✅ Connexion : {user['username']}"
-    )
-
-
-    print(
-        f"🏠 Serveurs : {len(servers)}"
-    )
+        session.clear()
 
 
 
-    return redirect("/servers")
+        session["user"] = {
+
+
+            "id":
+            str(user["id"]),
+
+
+            "username":
+            user.get(
+                "username",
+                "Utilisateur"
+            ),
+
+
+            "avatar":
+            user.get("avatar")
+
+
+        }
+
+
+
+
+
+        # ==========================
+        # SERVEURS DISCORD
+        # ==========================
+
+
+        all_guilds = get_user_guilds(
+            access_token
+        )
+
+
+
+        print("")
+        print("==============================")
+        print("🏠 SERVEURS DISCORD TROUVÉS")
+        print("==============================")
+
+
+
+        servers = []
+
+
+
+        for guild in all_guilds:
+
+
+
+            print(
+
+                f"""
+📌 {guild.get('name')}
+🆔 {guild.get('id')}
+👑 Owner : {guild.get('owner')}
+🔐 Permissions : {guild.get('permissions')}
+"""
+
+            )
+
+
+
+            data = format_guild(
+                guild
+            )
+
+
+
+            if data["can_manage"]:
+
+
+                servers.append(
+                    data
+                )
+
+
+
+        print("==============================")
+
+        print(
+            "✅ Serveurs accessibles :",
+            len(servers)
+        )
+
+        print("==============================")
+
+
+
+
+
+        session["guilds"] = servers
+
+
+        session.permanent = True
+
+
+
+
+        print(
+
+            f"✅ Connexion réussie : {session['user']['username']}"
+
+        )
+
+
+
+        return redirect(
+            "/servers"
+        )
+
+
+
+    except Exception as e:
+
+
+        print(
+            "❌ Erreur CALLBACK:",
+            e
+        )
+
+
+        return (
+            "Erreur connexion Discord",
+            500
+        )
 
 
 
