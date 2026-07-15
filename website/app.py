@@ -266,16 +266,13 @@ def logout():
 def servers():
 
     if "user" not in session:
-
         return redirect("/login")
 
 
     return render_template(
-
         "servers.html",
-
-        user=session["user"]
-
+        user=session["user"],
+        guilds=session.get("guilds", [])
     )
 
 
