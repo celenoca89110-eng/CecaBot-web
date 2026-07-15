@@ -55,7 +55,7 @@ app = Flask(
 
 app.secret_key = os.getenv(
     "FLASK_SECRET",
-    "change-this-secret"
+    "ticketmp-secret-change"
 )
 
 
@@ -235,7 +235,12 @@ def callback():
     user = user_response.json()
 
 
-    session["user"] = user
+    session["user"] = {
+        "id": user.get("id"),
+        "username": user.get("username"),
+        "avatar": user.get("avatar")
+    }
+
     session.permanent = True
 
     print("✅ USER CONNECTE :", user)
