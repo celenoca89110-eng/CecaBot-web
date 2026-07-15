@@ -1,117 +1,209 @@
-```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard TicketMP</title>
+    <title>TicketMP Dashboard</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
 <div class="sidebar">
-    <h2>⚙️ TicketMP</h2>
 
-    <a href="/">📊 Dashboard</a>
-    <a href="/tickets">🎫 Tickets</a>
-    <a href="/panels">🧩 Panels</a>
+    <div>
+        <h2 class="logo">
+            🎫 TicketMP
+        </h2>
+
+        <nav>
+
+            <a class="active" href="/">
+                📊 Dashboard
+            </a>
+
+            <a href="/servers">
+                🏠 Mes serveurs
+            </a>
+
+            <a href="/tickets">
+                🎫 Tickets
+            </a>
+
+            <a href="/panels">
+                🧩 Panels
+            </a>
+
+        </nav>
+    </div>
 
     {% if user %}
     <div class="user-box">
-        <p><strong>{{ user.username }}</strong></p>
-        <a href="/logout">🚪 Déconnexion</a>
+
+        {% if user.avatar %}
+        <img
+            class="avatar"
+            src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png"
+        >
+        {% endif %}
+
+        <div class="user-info">
+            <strong>{{ user.username }}</strong>
+            <span>Connecté</span>
+        </div>
+
+        <a class="logout-btn" href="/logout">
+            🚪
+        </a>
+
     </div>
     {% endif %}
+
 </div>
+
 
 <div class="main">
 
-    <h1>📊 Tableau de bord</h1>
+    <div class="topbar">
 
-    <div class="cards">
-        <div class="card">
-            <h3>🟢 Tickets ouverts</h3>
-            <span>{{ stats.open }}</span>
+        <div>
+            <h1>Bienvenue {{ user.username }}</h1>
+            <p>
+                Gérez vos tickets et vos serveurs Discord.
+            </p>
         </div>
 
-        <div class="card">
-            <h3>🔴 Tickets fermés</h3>
-            <span>{{ stats.closed }}</span>
-        </div>
-
-        <div class="card">
-            <h3>🧩 Panels</h3>
-            <span>{{ stats.panels }}</span>
-        </div>
     </div>
 
-    <section>
 
-        <h2>🎫 Tickets récents</h2>
+    <div class="cards">
 
-        {% if tickets %}
+        <div class="card stat-card">
+            <div>
+                <p>Tickets ouverts</p>
+                <h2>{{ stats.open }}</h2>
+            </div>
+            <span>🟢</span>
+        </div>
 
-            {% for uid, ticket in tickets.items() %}
+        <div class="card stat-card">
+            <div>
+                <p>Tickets fermés</p>
+                <h2>{{ stats.closed }}</h2>
+            </div>
+            <span>🔴</span>
+        </div>
 
-            <div class="ticket">
+        <div class="card stat-card">
+            <div>
+                <p>Panels actifs</p>
+                <h2>{{ stats.panels }}</h2>
+            </div>
+            <span>🧩</span>
+        </div>
 
-                <strong>Utilisateur :</strong> {{ uid }}<br>
+    </div>
 
-                <strong>Serveur :</strong>
-                {{ ticket.guild_id or "—" }}
-                <br>
 
-                <strong>Salon :</strong>
-                {{ ticket.channel_id or "—" }}
-                <br>
+    <div class="dashboard-grid">
 
-                <strong>Catégorie :</strong>
-                {{ ticket.category or "—" }}
-                <br>
+        <section class="panel-box">
 
-                <strong>Créé via :</strong>
-                {{ ticket.via or "—" }}
+            <div class="section-header">
+                <h2>🎫 Tickets récents</h2>
+            </div>
+
+            {% if tickets %}
+
+                {% for uid, ticket in tickets.items() %}
+
+                <div class="ticket-card">
+
+                    <div class="ticket-top">
+
+                        <div>
+                            <h3>{{ uid }}</h3>
+                            <span>
+                                Ticket utilisateur
+                            </span>
+                        </div>
+
+                        <span class="badge">
+                            {{ ticket.category or "Support" }}
+                        </span>
+
+                    </div>
+
+                    <div class="ticket-info">
+
+                        <p>
+                            🏠 Serveur :
+                            {{ ticket.guild_id or "—" }}
+                        </p>
+
+                        <p>
+                            💬 Salon :
+                            {{ ticket.channel_id or "—" }}
+                        </p>
+
+                        <p>
+                            ⚙️ Via :
+                            {{ ticket.via or "—" }}
+                        </p>
+
+                    </div>
+
+                </div>
+
+                {% endfor %}
+
+            {% else %}
+
+                <div class="empty-box">
+                    🎫 Aucun ticket trouvé.
+                </div>
+
+            {% endif %}
+
+        </section>
+
+
+
+        <section class="panel-box">
+
+            <div class="section-header">
+                <h2>🧩 Informations</h2>
+            </div>
+
+            <div class="info-card">
+
+                <div class="info-item">
+                    <span>Panels chargés</span>
+                    <strong>{{ stats.panels }}</strong>
+                </div>
+
+                <div class="info-item">
+                    <span>Utilisateur connecté</span>
+                    <strong>{{ user.username }}</strong>
+                </div>
+
+                <div class="info-item">
+                    <span>Statut Dashboard</span>
+                    <strong class="online">
+                        🟢 En ligne
+                    </strong>
+                </div>
 
             </div>
 
-            {% endfor %}
+        </section>
 
-        {% else %}
-
-            <p>Aucun ticket trouvé.</p>
-
-        {% endif %}
-
-    </section>
-
-
-    <section>
-
-        <h2>🧩 Panels</h2>
-
-        {% if panels %}
-
-            <p>
-                {{ stats.panels }}
-                panel(s) chargé(s).
-            </p>
-
-        {% else %}
-
-            <p>Aucun panel trouvé.</p>
-
-        {% endif %}
-
-    </section>
+    </div>
 
 </div>
 
 </body>
 </html>
-```

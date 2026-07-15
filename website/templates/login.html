@@ -2,66 +2,213 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Login Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TicketMP Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial;
-    background: radial-gradient(circle at top, #1a1d24, #0f1115);
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Inter',sans-serif;
 }
 
-.box {
-    background: #1a1d24;
-    padding: 40px;
-    border-radius: 15px;
-    text-align: center;
-    width: 350px;
-    border: 1px solid #2b2f3a;
-    box-shadow: 0 0 20px rgba(88,101,242,0.2);
+body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    overflow:hidden;
+    background:
+    radial-gradient(circle at top left,#5865F250,transparent 35%),
+    radial-gradient(circle at bottom right,#8b5cf650,transparent 35%),
+    #0b0d12;
+    color:white;
 }
 
-h1 {
-    color: #5865F2;
-    margin-bottom: 10px;
+/* Fond animé */
+body::before{
+    content:"";
+    position:absolute;
+    width:500px;
+    height:500px;
+    background:#5865f230;
+    filter:blur(120px);
+    border-radius:50%;
+    animation:move 10s infinite alternate;
 }
 
-p {
-    opacity: 0.7;
-    font-size: 14px;
+@keyframes move{
+    from{
+        transform:translate(-200px,-150px);
+    }
+    to{
+        transform:translate(200px,150px);
+    }
 }
 
-.btn {
-    display: inline-block;
-    margin-top: 20px;
-    padding: 12px 20px;
-    background: #5865F2;
-    color: white;
-    text-decoration: none;
-    border-radius: 10px;
-    font-weight: bold;
+.login-box{
+    position:relative;
+    z-index:2;
+    width:430px;
+    padding:45px;
+    border-radius:28px;
+
+    background:rgba(20,22,30,.75);
+    backdrop-filter:blur(25px);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    box-shadow:
+    0 15px 50px rgba(0,0,0,.45),
+    0 0 40px rgba(88,101,242,.20);
+
+    text-align:center;
 }
 
-.btn:hover {
-    background: #4752c4;
+.logo{
+    width:90px;
+    height:90px;
+    margin:auto;
+    border-radius:25px;
+    background:linear-gradient(
+        135deg,
+        #5865F2,
+        #8b5cf6
+    );
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:42px;
+    margin-bottom:25px;
+
+    box-shadow:
+    0 0 35px rgba(88,101,242,.5);
+}
+
+h1{
+    font-size:34px;
+    margin-bottom:10px;
+    font-weight:700;
+}
+
+.subtitle{
+    color:#9ca3af;
+    line-height:1.6;
+    margin-bottom:35px;
+}
+
+.discord-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+
+    width:100%;
+    padding:16px;
+
+    border:none;
+    border-radius:16px;
+
+    text-decoration:none;
+    color:white;
+    font-size:17px;
+    font-weight:600;
+
+    background:linear-gradient(
+        135deg,
+        #5865F2,
+        #4752C4
+    );
+
+    transition:.25s;
+}
+
+.discord-btn:hover{
+    transform:translateY(-4px);
+    box-shadow:
+    0 10px 35px rgba(88,101,242,.45);
+}
+
+.footer{
+    margin-top:30px;
+    font-size:13px;
+    color:#6b7280;
+}
+
+.stats{
+    margin-top:30px;
+    display:flex;
+    justify-content:space-between;
+    gap:15px;
+}
+
+.stat{
+    flex:1;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.06);
+    padding:15px;
+    border-radius:15px;
+}
+
+.stat h2{
+    font-size:24px;
+    color:#5865F2;
+}
+
+.stat p{
+    margin-top:5px;
+    color:#9ca3af;
+    font-size:13px;
 }
 </style>
-
 </head>
 
 <body>
 
-<div class="box">
+<div class="login-box">
 
-    <h1>🔐 SaaS Dashboard</h1>
-    <p>Connecte-toi avec Discord pour accéder au panel</p>
+    <div class="logo">
+        🎫
+    </div>
 
-    <a class="btn" href="/login">Login with Discord</a>
+    <h1>TicketMP</h1>
+
+    <p class="subtitle">
+        Connecte ton compte Discord afin de gérer
+        tes serveurs, tickets et paramètres du bot.
+    </p>
+
+    <a class="discord-btn" href="/login">
+        <span>💬</span>
+        Se connecter avec Discord
+    </a>
+
+    <div class="stats">
+
+        <div class="stat">
+            <h2>24/7</h2>
+            <p>Bot en ligne</p>
+        </div>
+
+        <div class="stat">
+            <h2>∞</h2>
+            <p>Tickets gérés</p>
+        </div>
+
+        <div class="stat">
+            <h2>⚡</h2>
+            <p>Dashboard</p>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        TicketMP Dashboard • Version 3.0
+    </div>
 
 </div>
 

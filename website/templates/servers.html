@@ -1,22 +1,166 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <title>Serveurs Discord</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Mes Serveurs • TicketMP</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
-<h1>Bienvenue {{ user.username }}</h1>
+<div class="sidebar">
 
-<p>ID Discord : {{ user.id }}</p>
+    <div>
 
-<a href="/">Dashboard</a>
+        <h2 class="logo">
+            🎫 TicketMP
+        </h2>
 
-<br><br>
+        <nav>
 
-<a href="/logout">
-    Déconnexion
-</a>
+            <a href="/">
+                📊 Dashboard
+            </a>
+
+            <a class="active" href="/servers">
+                🏠 Mes serveurs
+            </a>
+
+            <a href="/tickets">
+                🎫 Tickets
+            </a>
+
+            <a href="/panels">
+                🧩 Panels
+            </a>
+
+        </nav>
+
+    </div>
+
+    <div class="user-box">
+
+        {% if user.avatar %}
+        <img
+            class="avatar"
+            src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png"
+        >
+        {% endif %}
+
+        <div class="user-info">
+            <strong>{{ user.username }}</strong>
+            <span>Connecté avec Discord</span>
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="main">
+
+    <div class="topbar">
+
+        <div>
+
+            <h1>
+                👋 Bonjour {{ user.username }}
+            </h1>
+
+            <p>
+                Sélectionne un serveur pour gérer TicketMP.
+            </p>
+
+        </div>
+
+        <a class="logout-btn" href="/logout">
+            🚪 Déconnexion
+        </a>
+
+    </div>
+
+
+    <!-- PROFIL -->
+
+    <div class="profile-card">
+
+        <div class="profile-left">
+
+            {% if user.avatar %}
+
+            <img
+                class="profile-avatar"
+                src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png"
+            >
+
+            {% else %}
+
+            <div class="profile-avatar default-avatar">
+                👤
+            </div>
+
+            {% endif %}
+
+            <div>
+
+                <h2>
+                    {{ user.username }}
+                </h2>
+
+                <p>
+                    ID :
+                    {{ user.id }}
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="profile-status">
+            🟢 Connecté
+        </div>
+
+    </div>
+
+
+    <!-- LISTE SERVEURS -->
+
+    <h2 class="section-title">
+        🏠 Mes serveurs Discord
+    </h2>
+
+    <div class="servers-grid">
+
+        <!-- Exemple -->
+        <div class="server-card">
+
+            <div class="server-icon">
+                🎮
+            </div>
+
+            <h3>
+                Aucun serveur chargé
+            </h3>
+
+            <p>
+                Les serveurs Discord seront affichés ici.
+            </p>
+
+            <button disabled>
+                Gestion bientôt disponible
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
 
 </body>
 </html>

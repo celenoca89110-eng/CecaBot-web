@@ -1,36 +1,281 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
+
 <meta charset="UTF-8">
-<title>Tickets — TicketMP Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Tickets • TicketMP Dashboard</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 </head>
+
+
 <body>
+
+
 <div class="sidebar">
-    <h2>⚙ TicketMP Dashboard</h2>
-    <a href="/">📊 Dashboard</a>
-    <a href="/tickets">🎫 Tickets</a>
-    <a href="/panels">🧩 Panels</a>
+
+
+    <div>
+
+        <h2 class="logo">
+            🎫 TicketMP
+        </h2>
+
+
+        <nav>
+
+            <a href="/">
+                📊 Dashboard
+            </a>
+
+            <a href="/servers">
+                🏠 Mes serveurs
+            </a>
+
+            <a class="active" href="/tickets">
+                🎫 Tickets
+            </a>
+
+            <a href="/panels">
+                🧩 Panels
+            </a>
+
+        </nav>
+
+
+    </div>
+
+
 </div>
+
+
+
+
 <div class="main">
-    <h1>🎫 Tickets</h1>
-    {% if tickets %}
-        {% for uid, t in tickets.items() %}
-        <div class="ticket">
-            <div>
-                <strong>{{ uid }}</strong><br>
-                Guild: <code>{{ t.guild_id }}</code><br>
-                Channel: <code>{{ t.channel_id }}</code><br>
-                Catégorie: <code>{{ t.category or '—' }}</code><br>
-                Via: <code>{{ t.via or '—' }}</code>
-            </div>
+
+
+    <div class="topbar">
+
+        <div>
+
+            <h1>
+                🎫 Gestion des tickets
+            </h1>
+
+            <p>
+                Consulte tous les tickets ouverts et fermés du bot.
+            </p>
+
         </div>
+
+
+        <div class="stats-mini">
+
+            {{ tickets|length }}
+            ticket(s)
+
+        </div>
+
+
+    </div>
+
+
+
+
+
+    {% if tickets %}
+
+
+    <div class="tickets-grid">
+
+
+        {% for uid, t in tickets.items() %}
+
+
+        <div class="ticket-card">
+
+
+            <div class="ticket-header">
+
+
+                <div class="ticket-user">
+
+
+                    <div class="ticket-avatar">
+                        👤
+                    </div>
+
+
+                    <div>
+
+                        <h3>
+                            {{ uid }}
+                        </h3>
+
+                        <span>
+                            Ticket utilisateur
+                        </span>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <div class="ticket-status">
+
+                    🟢 Actif
+
+                </div>
+
+
+            </div>
+
+
+
+
+
+            <div class="ticket-details">
+
+
+                <div class="detail-row">
+
+                    <span>
+                        🏠 Serveur
+                    </span>
+
+                    <code>
+                        {{ t.guild_id or "—" }}
+                    </code>
+
+                </div>
+
+
+
+
+                <div class="detail-row">
+
+                    <span>
+                        💬 Salon
+                    </span>
+
+                    <code>
+                        {{ t.channel_id or "—" }}
+                    </code>
+
+                </div>
+
+
+
+
+                <div class="detail-row">
+
+                    <span>
+                        📁 Catégorie
+                    </span>
+
+                    <strong>
+                        {{ t.category or "—" }}
+                    </strong>
+
+                </div>
+
+
+
+
+                <div class="detail-row">
+
+                    <span>
+                        ⚙️ Créé via
+                    </span>
+
+                    <strong>
+                        {{ t.via or "—" }}
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+
+
+
+            <div class="ticket-actions">
+
+
+                <button class="btn-primary">
+
+                    👁️ Voir
+
+                </button>
+
+
+
+                <button class="btn-danger">
+
+                    🔒 Fermer
+
+                </button>
+
+
+            </div>
+
+
+
+        </div>
+
+
+
         {% endfor %}
+
+
+    </div>
+
+
+
     {% else %}
-        <p>Aucun ticket trouvé dans <code>tickets.json</code>.</p>
+
+
+
+    <div class="empty-page">
+
+
+        <div class="empty-icon">
+            🎫
+        </div>
+
+
+        <h2>
+            Aucun ticket trouvé
+        </h2>
+
+
+        <p>
+            Aucun ticket n'est actuellement enregistré.
+        </p>
+
+
+    </div>
+
+
+
     {% endif %}
+
+
+
 </div>
+
+
+
 </body>
 </html>
