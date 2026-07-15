@@ -282,38 +282,19 @@ def format_guild(guild):
 @app.route("/login")
 def login():
 
-
     params = {
-
-
-        "client_id":
-        DISCORD_CLIENT_ID,
-
-
-        "response_type":
-        "code",
-
-
-        "redirect_uri":
-        DISCORD_REDIRECT_URI,
-
-
-        "scope":
-        "identify guilds"
-
+        "client_id": DISCORD_CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri": DISCORD_REDIRECT_URI,
+        "scope": "identify guilds"
     }
 
-
-
-    return redirect(
-
+    url = (
         "https://discord.com/oauth2/authorize?"
-
-        +
-
-        urlencode(params)
-
+        + urlencode(params)
     )
+
+    return redirect(url)
 
 
 
@@ -326,22 +307,17 @@ def login():
 @app.route("/callback")
 def callback():
 
-
     code = request.args.get("code")
 
-
     if not code:
+        return "Code Discord absent", 400
 
-        return "❌ Code Discord absent", 400
 
-
+    # ==========================
+    # RECUPERATION TOKEN
+    # ==========================
 
     try:
-
-
-        # ==========================
-        # TOKEN DISCORD
-        # ==========================
 
         token_request = requests.post(
 
@@ -373,289 +349,294 @@ def callback():
         )
 
 
-
         token = token_request.json()
-
-
-
-        if "access_token" not in token:
-
-
-            print(
-                "❌ Token Discord invalide:",
-                token
-            )
-
-
-            return jsonify(token),400
-
-
-
-        access_token = token["access_token"]
-
-
-
-
-
-        # ==========================
-        # UTILISATEUR DISCORD
-        # ==========================
-
-
-        user = discord_get(
-
-            "https://discord.com/api/users/@me",
-
-            access_token
-
-        )
-
-
-
-        if not user:
-
-
-            return (
-                "❌ Impossible de récupérer le profil Discord",
-                400
-            )
-
-
-
-
-
-        session.clear()
-
-
-
-        session["user"] = {
-
-
-            "id":
-            str(user["id"]),
-
-
-            "username":
-            user.get(
-                "username",
-                "Utilisateur"
-            ),
-
-
-            "avatar":
-            user.get("avatar")
-
-
-        }
-
-
-
-
-
-        # ==========================
-        # SERVEURS DISCORD
-        # ==========================
-
-
-        all_guilds = get_user_guilds(
-            access_token
-        )
-
-
-
-        print("")
-        print("==============================")
-        print("🏠 SERVEURS DISCORD TROUVÉS")
-        print("==============================")
-
-
-
-        servers = []
-
-
-
-        for guild in all_guilds:
-
-
-
-            print(
-
-                f"""
-📌 {guild.get('name')}
-🆔 {guild.get('id')}
-👑 Owner : {guild.get('owner')}
-🔐 Permissions : {guild.get('permissions')}
-"""
-
-            )
-
-
-
-            data = format_guild(
-                guild
-            )
-
-
-
-            if data["can_manage"]:
-
-
-                servers.append(
-                    data
-                )
-
-
-
-        print("==============================")
-
-        print(
-            "✅ Serveurs accessibles :",
-            len(servers)
-        )
-
-        print("==============================")
-
-
-
-
-
-        session["guilds"] = servers
-
-
-        session.permanent = True
-
-
-
-
-        print(
-
-            f"✅ Connexion réussie : {session['user']['username']}"
-
-        )
-
-
-
-        return redirect(
-            "/servers"
-        )
-
 
 
     except Exception as e:
 
+        print("❌ Token Discord erreur :", e)
 
-        print(
-            "❌ Erreur CALLBACK:",
-            e
-        )
-
-
-        return (
-            "Erreur connexion Discord",
-            500
-        )
+        return "Erreur connexion Discord",500
 
 
 
+    if "access_token" not in token:
+
+        print("❌ Token invalide :", token)
+
+        return jsonify(token),400
 
 
-# ==================================================
-# LOGOUT
-# ==================================================
 
-@app.route("/logout")
-def logout():
+    access_token = token["access_token"]
+
+
+
+    # ==========================
+    # USER DISCORD
+    # ==========================
+
+    user = discord_get(
+
+        "https://discord.com/api/users/@me",
+
+        access_token
+
+    )
+
+
+    if not user:
+
+        return "Impossible de récupérer utilisateur",400
+
+
 
     session.clear()
 
-    return redirect("/login")
+
+
+    session["user"]={
+
+        "id": str(user["id"]),
+
+        "username": user["username"],
+
+        "avatar": user.get("avatar")
+
+    }
 
 
 
+
+    # ==========================
+    # SERVEURS DISCORD
+    # ==========================
+
+
+    guilds = get_user_guilds(
+        access_token
+    )
+
+
+
+    print()
+    print("==============================")
+    print(" DEBUG SERVEURS DISCORD")
+    print("==============================")
+
+
+    servers=[]
+
+
+
+    for guild in guilds:
+
+
+        permissions = int(
+            guild.get(
+                "permissions",
+                0
+            )
+        )
+
+
+        owner = guild.get(
+            "owner",
+            False
+        )
+
+
+        administrator = bool(
+            permissions & 0x8
+        )
+
+
+        manage_guild = bool(
+            permissions & 0x20
+        )
+
+
+
+        can_manage = (
+
+            owner
+
+            or administrator
+
+            or manage_guild
+
+        )
+
+
+
+        print(
+
+            f"{guild.get('name')} | "
+            f"OWNER={owner} | "
+            f"ADMIN={administrator} | "
+            f"MANAGE={manage_guild}"
+
+        )
+
+
+
+
+        if can_manage:
+
+
+            servers.append({
+
+                "id":
+                guild["id"],
+
+
+                "name":
+                guild["name"],
+
+
+                "icon":
+                guild.get("icon"),
+
+
+                "owner":
+                owner,
+
+
+                "administrator":
+                administrator,
+
+
+                "can_manage":
+                True
+
+            })
+
+
+
+
+
+    print("==============================")
+
+    print(
+        "Utilisateur:",
+        user["username"]
+    )
+
+
+    print(
+        "Serveurs trouvés:",
+        len(guilds)
+    )
+
+
+    print(
+        "Serveurs affichés:",
+        len(servers)
+    )
+
+
+    print("==============================")
+
+
+
+
+    session["guilds"]=servers
+
+    session.permanent=True
+
+
+
+    return redirect("/servers")
 
 
 
 # ==================================================
-# SERVERS
+# SERVER MANAGEMENT
 # ==================================================
 
 @app.route("/servers")
 def servers():
 
-
     if "user" not in session:
-
         return redirect("/login")
 
 
-
     return render_template(
-
         "servers.html",
-
         user=session["user"],
-
-        guilds=session.get(
-            "guilds",
-            []
-        )
-
+        guilds=session.get("guilds", [])
     )
-
-
-
 
 
 
 @app.route("/server/<guild_id>")
 def server_manage(guild_id):
 
-
     if "user" not in session:
-
         return redirect("/login")
 
 
-
     guild = next(
-
         (
             g
-            for g in session.get(
-                "guilds",
-                []
-            )
-
+            for g in session.get("guilds", [])
             if g["id"] == guild_id
-
         ),
-
         None
-
     )
-
 
 
     if not guild:
-
         return "Serveur inaccessible",403
 
 
-
     return render_template(
-
         "server.html",
-
         user=session["user"],
-
         guild=guild
-
     )
 
 
 
+@app.route("/server/<guild_id>/settings")
+def server_settings(guild_id):
+
+    if "user" not in session:
+        return redirect("/login")
 
 
+    return render_template(
+        "server_settings.html",
+        guild_id=guild_id
+    )
+
+
+
+@app.route("/server/<guild_id>/tickets")
+def server_tickets(guild_id):
+
+    if "user" not in session:
+        return redirect("/login")
+
+
+    return render_template(
+        "server_tickets.html",
+        guild_id=guild_id
+    )
+
+
+
+@app.route("/server/<guild_id>/panel")
+def server_panel(guild_id):
+
+    if "user" not in session:
+        return redirect("/login")
+
+
+    return render_template(
+        "server_panel.html",
+        guild_id=guild_id
+    )
 
 
 # ==================================================

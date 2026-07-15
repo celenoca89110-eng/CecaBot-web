@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ guild.name }} - TicketMP</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <div class="card">
+
+
+        <div class="server-header">
+
+
+            {% if guild.icon %}
+
+                <img
+                class="server-icon"
+                src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png"
+                >
+
+            {% endif %}
+
+
+
+            <div>
+
+                <h1>
+                    {{ guild.name }}
+                </h1>
+
+
+                <p>
+                    Gestion du serveur Discord
+                </p>
+
+            </div>
+
+
+        </div>
+
+
+
+        <hr>
+
+
+
+        <h2>
+            ⚙️ Configuration TicketMP
+        </h2>
+
+
+
+        <div class="actions">
+
+
+            <a href="/server/{{ guild.id }}/settings"
+               class="button">
+
+                ⚙️ Paramètres
+
+            </a>
+
+
+
+            <a href="/server/{{ guild.id }}/tickets"
+               class="button">
+
+                🎫 Tickets
+
+            </a>
+
+
+
+            <a href="/server/{{ guild.id }}/panel"
+               class="button">
+
+                📋 Panel Ticket
+
+            </a>
+
+
+
+            <a href="/servers"
+               class="button secondary">
+
+                ⬅️ Retour
+
+            </a>
+
+
+        </div>
+
+
+
+        <hr>
+
+
+
+        <h2>
+            Informations
+        </h2>
+
+
+        <div class="info">
+
+
+            <p>
+                🆔 ID :
+                <strong>
+                    {{ guild.id }}
+                </strong>
+            </p>
+
+
+            <p>
+                👑 Propriétaire :
+                {% if guild.owner %}
+                    Oui
+                {% else %}
+                    Non
+                {% endif %}
+            </p>
+
+
+
+            <p>
+                🛡️ Administrateur :
+                {% if guild.administrator %}
+                    Oui
+                {% else %}
+                    Non
+                {% endif %}
+            </p>
+
+
+        </div>
+
+
+
+    </div>
+
+
+
+</div>
+
+
+</body>
+
+</html>
