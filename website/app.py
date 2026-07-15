@@ -222,38 +222,243 @@ def callback():
 
 
 
-    session["user"] = {
+session["user"] = {
 
-        "id": str(user["id"]),
+    "id": str(user["id"]),
 
-        "username": user["username"],
+    "username": user["username"],
 
-        "avatar": user.get("avatar")
+    "avatar": user.get("avatar")
+
+}
+
+
+
+# ==========================
+# SERVEURS DISCORD
+# ==========================
+
+
+def get_user_guilds(access_token):
+
+    try:
+
+        response = requests.get(
+
+            "https://discord.com/api/users/@me/guilds",
+
+            headers={
+
+                "Authorization":
+                f"Bearer {access_token}"
+
+            },
+
+            timeout=10
+
+        )
+
+
+        if response.status_code != 200:
+
+            print(
+                "❌ Erreur Discord Guilds:",
+                response.text
+            )
+
+            return []
+
+
+        return response.json()
+
+
+
+    except Exception as e:
+
+        print(
+            "❌ Erreur récupération serveurs:",
+            e
+        )
+
+        return []
+
+
+
+
+
+def format_guild(guild):
+
+
+    permissions = int(
+        guild.get(
+            "permissions",
+            0
+        )
+    )
+
+
+
+    is_admin = bool(
+        permissions & 0x8
+    )
+
+
+    can_manage = bool(
+        permissions & 0x20
+    )
+
+
+
+    return {
+
+
+        "id":
+        guild.get("id"),
+
+
+
+        "name":
+        guild.get(
+            "name",
+            "Serveur inconnu"
+        ),
+
+
+
+        "icon":
+        guild.get("icon"),
+
+
+
+        "owner":
+        guild.get(
+            "owner",
+            False
+        ),
+
+
+
+        "permissions":
+        permissions,
+
+
+
+        "administrator":
+        is_admin,
+
+
+
+        "can_manage":
+        (
+            can_manage
+            or
+            is_admin
+            or
+            guild.get(
+                "owner",
+                False
+            )
+        )
 
     }
+
+
+
+
+# ==========================
+# CALLBACK DISCORD
+# ==========================
+
+
+@app.route("/callback")
+def callback():
+
+
+    code = request.args.get(
+        "code"
+    )
+
+
+    if not code:
+
+        return "Code Discord manquant",400
+
+
+
+    # Ici tu gardes ton échange OAuth
+    # token = requests.post(...)
+
+
+
+    access_token = token["access_token"]
+
+
+
+    # Sauvegarde utilisateur
+
+    session["user"] = user_data
+
+
+
+
+    # ==========================
+    # SERVEURS DISCORD
+    # ==========================
+
+
+    guilds = get_user_guilds(
+        access_token
+    )
+
+
+
+    available_servers = []
+
+
+
+    for guild in guilds:
+
+
+        data = format_guild(
+            guild
+        )
+
+
+        if data["can_manage"]:
+
+            available_servers.append(
+                data
+            )
+
+
+
+
+    session["guilds"] = available_servers
 
 
     session.permanent = True
 
 
 
+
     print(
-        "✅ Connexion Discord :",
-        session["user"]
+        f"✅ Connexion Discord : {session['user']['username']}"
     )
 
 
-    return redirect("/servers")
+    print(
+        f"🏠 Serveurs accessibles : {len(available_servers)}"
+    )
+
+
+
+    return redirect(
+        "/servers"
+    )
 
 
 
 
-@app.route("/logout")
-def logout():
-
-    session.clear()
-
-    return redirect("/login")
 
 
 
@@ -265,14 +470,26 @@ def logout():
 @app.route("/servers")
 def servers():
 
+
     if "user" not in session:
-        return redirect("/login")
+
+        return redirect(
+            "/login"
+        )
+
 
 
     return render_template(
+
         "servers.html",
+
         user=session["user"],
-        guilds=session.get("guilds", [])
+
+        guilds=session.get(
+            "guilds",
+            []
+        )
+
     )
 
 
