@@ -65,16 +65,18 @@ def create_tables():
 
     try:
 
-        db.execute(
-        """
+
+        # ==================================================
+        # GUILD CONFIG
+        # ==================================================
+
+        db.execute("""
         CREATE TABLE IF NOT EXISTS guild_config (
 
             guild_id TEXT PRIMARY KEY,
 
 
-            -- =========================
             -- TICKETS
-            -- =========================
 
             ticket_category TEXT,
 
@@ -87,9 +89,7 @@ def create_tables():
 
 
 
-            -- =========================
             -- PANEL
-            -- =========================
 
             panel_channel TEXT,
 
@@ -98,9 +98,7 @@ def create_tables():
 
 
 
-            -- =========================
             -- GENERAL
-            -- =========================
 
             language TEXT DEFAULT 'fr',
 
@@ -108,9 +106,7 @@ def create_tables():
 
 
 
-            -- =========================
             -- SECURITY
-            -- =========================
 
             anti_raid INTEGER DEFAULT 0,
 
@@ -120,9 +116,7 @@ def create_tables():
 
 
 
-            -- =========================
-            -- LOGS
-            -- =========================
+            -- LOGS GENERAL
 
             logs INTEGER DEFAULT 0,
 
@@ -130,9 +124,7 @@ def create_tables():
 
 
 
-            -- =========================
             -- NOTIFICATIONS
-            -- =========================
 
             notifications INTEGER DEFAULT 1,
 
@@ -140,9 +132,7 @@ def create_tables():
 
 
 
-            -- =========================
             -- CUSTOM
-            -- =========================
 
             bot_name TEXT DEFAULT 'TicketMP',
 
@@ -156,8 +146,33 @@ def create_tables():
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 
         )
-        """
+        """)
+
+
+
+        # ==================================================
+        # GUILD LOGS CONFIGURATION
+        # ==================================================
+
+        db.execute("""
+        CREATE TABLE IF NOT EXISTS guild_logs (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            guild_id TEXT NOT NULL,
+
+            log_type TEXT NOT NULL,
+
+            enabled INTEGER DEFAULT 0,
+
+            channel_id TEXT DEFAULT NULL,
+
+
+            UNIQUE(guild_id, log_type)
+
         )
+        """)
+
 
 
         db.commit()
@@ -179,7 +194,6 @@ def create_tables():
     finally:
 
         db.close()
-
 
 
 # ==================================================
@@ -403,3 +417,4 @@ def update_guild_config(
 def init_database():
 
     create_tables()
+
