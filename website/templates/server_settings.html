@@ -1,159 +1,91 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paramètres — TicketMP</title>
 
-<title>Paramètres - TicketMP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="/static/style.css">
-
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 
 <body>
 
+<div class="sidebar">
+    <h2><span class="dot"></span> TicketMP</h2>
 
-<div class="container">
+    <nav>
+        <a href="/server/{{ guild_id }}" class="nav-link"><span class="ico">🏠</span> Vue d'ensemble</a>
+        <a href="/server/{{ guild_id }}/tickets" class="nav-link"><span class="ico">🎫</span> Tickets</a>
+        <a href="/server/{{ guild_id }}/panel" class="nav-link"><span class="ico">📋</span> Panel Ticket</a>
+        <a href="/server/{{ guild_id }}/settings" class="nav-link active"><span class="ico">⚙️</span> Paramètres</a>
+        <a href="/servers" class="nav-link"><span class="ico">↩️</span> Autres serveurs</a>
+    </nav>
 
-
-<div class="card">
-
-
-<div class="server-header">
-
-
-<div>
-
-<h1>
-⚙️ Paramètres généraux
-</h1>
-
-<p>
-Configuration globale du bot TicketMP
-</p>
-
+    <div class="sidebar-footer">Module <strong>Paramètres</strong></div>
 </div>
 
+<div class="main">
+
+    <header class="page-head">
+        <div>
+            <h1>⚙️ Paramètres généraux</h1>
+            <p>Configuration globale du bot TicketMP.</p>
+        </div>
+    </header>
+
+    <section class="box">
+        <h2>🤖 Options du bot</h2>
+
+        <div class="config-grid">
+
+            <div class="config-card">
+                <h3>🌍 Langue</h3>
+                <p>Choisir la langue du bot.</p>
+                <div class="field" style="margin:6px 0 0;">
+                    <select>
+                        <option>Français</option>
+                        <option>English</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="config-card">
+                <h3>🟢 Statut du bot</h3>
+                <p>Activer ou désactiver les fonctionnalités.</p>
+                <div class="switch-row" style="padding-top:6px;border-bottom:none;">
+                    <div class="sw-label">Bot actif</div>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="config-card">
+                <h3>📨 Messages automatiques</h3>
+                <p>Configurer les messages envoyés par TicketMP.</p>
+                <span class="status-pill soon" style="align-self:flex-start;margin-top:4px;"><span class="lp-dot"></span> Bientôt disponible</span>
+            </div>
+
+            <div class="config-card">
+                <h3>🔧 Maintenance</h3>
+                <p>Options avancées du serveur.</p>
+                <span class="status-pill soon" style="align-self:flex-start;margin-top:4px;"><span class="lp-dot"></span> Bientôt disponible</span>
+            </div>
+
+        </div>
+
+        <button class="btn" style="margin-top:22px;">💾 Enregistrer les modifications</button>
+
+    </section>
+
+    <a href="/server/{{ guild_id }}" class="btn secondary">⬅️ Retour serveur</a>
 
 </div>
-
-
-
-<hr>
-
-
-
-<h2>
-🤖 Options du bot
-</h2>
-
-
-
-<div class="config-grid">
-
-
-
-<div class="config-card">
-
-<h3>
-🌍 Langue
-</h3>
-
-<p>
-Choisir la langue du bot.
-</p>
-
-<select>
-
-<option>
-Français
-</option>
-
-<option>
-English
-</option>
-
-</select>
-
-</div>
-
-
-
-
-<div class="config-card">
-
-<h3>
-🟢 Statut du bot
-</h3>
-
-<p>
-Activer ou désactiver les fonctionnalités.
-</p>
-
-<button>
-Activer
-</button>
-
-</div>
-
-
-
-
-<div class="config-card">
-
-<h3>
-📨 Messages automatiques
-</h3>
-
-<p>
-Configurer les messages envoyés par TicketMP.
-</p>
-
-</div>
-
-
-
-
-<div class="config-card">
-
-<h3>
-🔧 Maintenance
-</h3>
-
-<p>
-Options avancées du serveur.
-</p>
-
-</div>
-
-
-
-</div>
-
-
-
-<hr>
-
-
-
-<a href="/server/{{ guild_id }}"
-class="button secondary">
-
-⬅️ Retour serveur
-
-</a>
-
-
-
-</div>
-
-
-</div>
-
 
 </body>
-
 </html>

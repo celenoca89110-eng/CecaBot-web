@@ -3,213 +3,182 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TicketMP Dashboard</title>
+<title>TicketMP — Connexion Discord</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 
 <style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:'Inter',sans-serif;
-}
+* { box-sizing: border-box; }
 
-body{
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    overflow:hidden;
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Inter", Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
     background:
-    radial-gradient(circle at top left,#5865F250,transparent 35%),
-    radial-gradient(circle at bottom right,#8b5cf650,transparent 35%),
-    #0b0d12;
-    color:white;
+        radial-gradient(circle at 20% 10%, rgba(88,101,242,.35), transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(139,124,246,.18), transparent 40%),
+        linear-gradient(160deg, #07080d, #12131d 60%, #0a0b12);
+    overflow: hidden;
+    position: relative;
 }
 
-/* Fond animé */
-body::before{
-    content:"";
-    position:absolute;
-    width:500px;
-    height:500px;
-    background:#5865f230;
-    filter:blur(120px);
-    border-radius:50%;
-    animation:move 10s infinite alternate;
+/* ambient floating orbs */
+.orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: .5;
+    animation: float 12s ease-in-out infinite;
+    pointer-events: none;
+}
+.orb.a { width: 260px; height: 260px; background: #5865f2; top: 8%; left: 8%; animation-delay: 0s; }
+.orb.b { width: 200px; height: 200px; background: #8b7cf6; bottom: 10%; right: 10%; animation-delay: 3s; }
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) translateX(0); }
+    50% { transform: translateY(-24px) translateX(14px); }
 }
 
-@keyframes move{
-    from{
-        transform:translate(-200px,-150px);
-    }
-    to{
-        transform:translate(200px,150px);
-    }
+@media (prefers-reduced-motion: reduce) {
+    .orb, .card, .discord-btn { animation: none !important; }
 }
 
-.login-box{
-    position:relative;
-    z-index:2;
-    width:430px;
-    padding:45px;
-    border-radius:28px;
+.container { width: 100%; max-width: 460px; padding: 25px; position: relative; z-index: 2; }
 
-    background:rgba(20,22,30,.75);
-    backdrop-filter:blur(25px);
-
-    border:1px solid rgba(255,255,255,.08);
-
-    box-shadow:
-    0 15px 50px rgba(0,0,0,.45),
-    0 0 40px rgba(88,101,242,.20);
-
-    text-align:center;
+.card {
+    background: rgba(20,21,31,.75);
+    backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 26px;
+    padding: 48px 38px;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5);
+    animation: fade .6s ease;
 }
 
-.logo{
-    width:90px;
-    height:90px;
-    margin:auto;
-    border-radius:25px;
-    background:linear-gradient(
-        135deg,
-        #5865F2,
-        #8b5cf6
-    );
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:42px;
-    margin-bottom:25px;
-
-    box-shadow:
-    0 0 35px rgba(88,101,242,.5);
+@keyframes fade {
+    from { opacity: 0; transform: translateY(30px) scale(.96); }
+    to { opacity: 1; transform: none; }
 }
 
-h1{
-    font-size:34px;
-    margin-bottom:10px;
-    font-weight:700;
+.logo {
+    width: 84px;
+    height: 84px;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #5865F2, #8b7cf6);
+    box-shadow: 0 15px 40px rgba(88,101,242,.5);
 }
 
-.subtitle{
-    color:#9ca3af;
-    line-height:1.6;
-    margin-bottom:35px;
+h1 {
+    font-family: "Space Grotesk", sans-serif;
+    margin-top: 26px;
+    font-size: 29px;
+    font-weight: 700;
+    letter-spacing: -.01em;
 }
 
-.discord-btn{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:12px;
+.highlight { color: #8b9bff; }
 
-    width:100%;
-    padding:16px;
-
-    border:none;
-    border-radius:16px;
-
-    text-decoration:none;
-    color:white;
-    font-size:17px;
-    font-weight:600;
-
-    background:linear-gradient(
-        135deg,
-        #5865F2,
-        #4752C4
-    );
-
-    transition:.25s;
+.subtitle {
+    margin-top: 14px;
+    color: #a7abc0;
+    font-size: 14.5px;
+    line-height: 1.65;
 }
 
-.discord-btn:hover{
-    transform:translateY(-4px);
-    box-shadow:
-    0 10px 35px rgba(88,101,242,.45);
+.discord-btn {
+    margin-top: 32px;
+    width: 100%;
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #5865F2, #4752c4);
+    color: white;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 15.5px;
+    transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s cubic-bezier(.22,1,.36,1), filter .25s;
+    box-shadow: 0 12px 28px rgba(88,101,242,.4);
 }
 
-.footer{
-    margin-top:30px;
-    font-size:13px;
-    color:#6b7280;
+.discord-btn:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.08);
+    box-shadow: 0 18px 38px rgba(88,101,242,.55);
 }
 
-.stats{
-    margin-top:30px;
-    display:flex;
-    justify-content:space-between;
-    gap:15px;
+.discord-btn:active { transform: translateY(0); }
+
+.info {
+    margin-top: 28px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: rgba(0,0,0,.28);
+    border: 1px solid rgba(255,255,255,.05);
+    color: #9ba0b5;
+    font-size: 12.5px;
+    line-height: 1.6;
+    text-align: left;
 }
 
-.stat{
-    flex:1;
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.06);
-    padding:15px;
-    border-radius:15px;
+.footer {
+    margin-top: 24px;
+    color: #6a6e82;
+    font-size: 12px;
 }
 
-.stat h2{
-    font-size:24px;
-    color:#5865F2;
-}
-
-.stat p{
-    margin-top:5px;
-    color:#9ca3af;
-    font-size:13px;
+@media (max-width: 500px) {
+    .card { padding: 36px 22px; }
+    h1 { font-size: 24px; }
 }
 </style>
+
 </head>
 
 <body>
 
-<div class="login-box">
+<div class="orb a"></div>
+<div class="orb b"></div>
 
-    <div class="logo">
-        🎫
-    </div>
+<div class="container">
+    <div class="card">
 
-    <h1>TicketMP</h1>
+        <div class="logo">🎫</div>
 
-    <p class="subtitle">
-        Connecte ton compte Discord afin de gérer
-        tes serveurs, tickets et paramètres du bot.
-    </p>
+        <h1>Ticket<span class="highlight">MP</span></h1>
 
-    <a class="discord-btn" href="/login">
-        <span>💬</span>
-        Se connecter avec Discord
-    </a>
+        <p class="subtitle">
+            Le dashboard nouvelle génération pour gérer ton bot Discord.
+            Configure tes tickets, tes panels et tes systèmes automatiquement.
+        </p>
 
-    <div class="stats">
+        <a href="/login" class="discord-btn">
+            <span>💠</span> Continuer avec Discord
+        </a>
 
-        <div class="stat">
-            <h2>24/7</h2>
-            <p>Bot en ligne</p>
+        <div class="info">
+            🔒 <b>Connexion sécurisée Discord OAuth2</b><br>
+            Aucun mot de passe Discord demandé.<br><br>
+            TicketMP utilise uniquement les permissions Discord nécessaires.
         </div>
 
-        <div class="stat">
-            <h2>∞</h2>
-            <p>Tickets gérés</p>
-        </div>
-
-        <div class="stat">
-            <h2>⚡</h2>
-            <p>Dashboard</p>
-        </div>
+        <div class="footer">© 2026 TicketMP • Discord Management System</div>
 
     </div>
-
-    <div class="footer">
-        TicketMP Dashboard • Version 3.0
-    </div>
-
 </div>
 
 </body>

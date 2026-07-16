@@ -3,204 +3,95 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panels • TicketMP Dashboard</title>
+<title>Panels — TicketMP Dashboard</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
 
 <div class="sidebar">
+    <h2><span class="dot"></span> TicketMP</h2>
 
-    <div>
+    <nav>
+        <a href="/" class="nav-link"><span class="ico">📊</span> Dashboard</a>
+        <a href="/tickets" class="nav-link"><span class="ico">🎫</span> Tickets</a>
+        <a href="/panels" class="nav-link active"><span class="ico">🧩</span> Panels</a>
+        <a href="/servers" class="nav-link"><span class="ico">🖥️</span> Serveurs</a>
+        <a href="/logout" class="nav-link"><span class="ico">🚪</span> Déconnexion</a>
+    </nav>
 
-        <h2 class="logo">
-            🎫 TicketMP
-        </h2>
-
-        <nav>
-
-            <a href="/">
-                📊 Dashboard
-            </a>
-
-            <a href="/servers">
-                🏠 Mes serveurs
-            </a>
-
-            <a href="/tickets">
-                🎫 Tickets
-            </a>
-
-            <a class="active" href="/panels">
-                🧩 Panels
-            </a>
-
-        </nav>
-
-    </div>
-
+    <div class="sidebar-footer">Module <strong>Panels</strong></div>
 </div>
-
 
 <div class="main">
 
-    <div class="topbar">
-
+    <header class="page-head">
         <div>
-            <h1>🧩 Gestion des Panels</h1>
-            <p>
-                Consulte tous les panels configurés sur tes serveurs.
-            </p>
+            <h1>🧩 Panels Discord</h1>
+            <p>Gestion des panels TicketMP configurés sur vos serveurs Discord.</p>
         </div>
+    </header>
 
-        <div class="stats-mini">
-            <span>
-                {{ panels|length }}
-                serveur(s)
-            </span>
-        </div>
+    <section class="box">
 
-    </div>
+        <h2>
+            📦 Panels actifs
+            {% if panels %}<span class="badge admin">{{ panels|length }}</span>{% endif %}
+        </h2>
 
+        {% if panels %}
 
-    {% if panels %}
+            {% for guild_id, items in panels.items() %}
+            <div class="panel-group">
 
-        {% for guild_id, items in panels.items() %}
-
-        <section class="panel-section">
-
-            <div class="guild-header">
-
-                <div>
-
-                    <h2>
-                        🏠 Serveur
-                    </h2>
-
-                    <p>
-                        ID :
-                        <code>{{ guild_id }}</code>
-                    </p>
-
+                <div class="panel-header">
+                    <h3>🏠 Serveur <code>{{ guild_id }}</code></h3>
+                    <span class="status open">🟢 Actif</span>
                 </div>
 
-                <span class="guild-badge">
-                    {{ items|length }}
-                    panel(s)
-                </span>
+                {% if items %}
+                <div class="cards" style="margin:0;">
+                    {% for panel in items %}
+                    <div class="card">
+                        <h3 style="margin:0 0 14px;font-size:16px;">🧩 Panel Ticket</h3>
 
-            </div>
+                        <p style="margin:0 0 10px;">
+                            <strong style="font-size:13px;color:var(--muted);">📢 Salon</strong><br>
+                            <code>{{ panel.channel_id or "—" }}</code>
+                        </p>
 
+                        <p style="margin:0 0 10px;">
+                            <strong style="font-size:13px;color:var(--muted);">📁 Catégorie</strong><br>
+                            {{ panel.category or "Non définie" }}
+                        </p>
 
-            {% if items %}
-
-            <div class="panel-grid">
-
-                {% for panel in items %}
-
-                <div class="panel-card">
-
-                    <div class="panel-card-top">
-
-                        <div class="panel-icon">
-                            🧩
-                        </div>
-
-                        <div>
-
-                            <h3>
-                                {{ panel.label or "Panel Ticket" }}
-                            </h3>
-
-                            <p>
-                                {{ panel.category or "Support" }}
-                            </p>
-
-                        </div>
-
+                        <p style="margin:0;">
+                            <strong style="font-size:13px;color:var(--muted);">🏷 Nom du bouton</strong><br>
+                            <span class="tag">{{ panel.label or "Ticket" }}</span>
+                        </p>
                     </div>
-
-
-                    <div class="panel-info">
-
-                        <div class="info-row">
-                            <span>📺 Salon</span>
-
-                            <code>
-                                {{ panel.channel_id or "—" }}
-                            </code>
-                        </div>
-
-                        <div class="info-row">
-                            <span>📁 Catégorie</span>
-
-                            <strong>
-                                {{ panel.category or "—" }}
-                            </strong>
-                        </div>
-
-                        <div class="info-row">
-                            <span>🏷️ Label</span>
-
-                            <strong>
-                                {{ panel.label or "—" }}
-                            </strong>
-                        </div>
-
-                    </div>
-
-
-                    <div class="panel-actions">
-
-                        <button class="btn-primary">
-                            ⚙️ Configurer
-                        </button>
-
-                        <button class="btn-danger">
-                            🗑️ Supprimer
-                        </button>
-
-                    </div>
-
+                    {% endfor %}
                 </div>
-
-                {% endfor %}
+                {% else %}
+                <div class="empty">📭 Aucun panel configuré pour ce serveur.</div>
+                {% endif %}
 
             </div>
+            {% endfor %}
 
-            {% else %}
-
-            <div class="empty-box">
-                🧩 Aucun panel configuré pour ce serveur.
+        {% else %}
+            <div class="empty">
+                📭 Aucun panel trouvé.<br>
+                Le fichier <code>panels.json</code> est vide.
             </div>
+        {% endif %}
 
-            {% endif %}
-
-        </section>
-
-        {% endfor %}
-
-    {% else %}
-
-    <div class="empty-page">
-
-        <div class="empty-icon">
-            🧩
-        </div>
-
-        <h2>Aucun panel trouvé</h2>
-
-        <p>
-            Aucun panel n'est actuellement enregistré dans
-            <code>panels.json</code>.
-        </p>
-
-    </div>
-
-    {% endif %}
+    </section>
 
 </div>
 

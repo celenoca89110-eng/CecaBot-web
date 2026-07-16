@@ -1,435 +1,50 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Mes serveurs • TicketMP</title>
-
+<title>Serveurs — TicketMP</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-
 </head>
 
+<body style="margin-left:0;">
 
-<body>
+<div class="main" style="margin-left:0;max-width:1100px;margin-inline:auto;">
 
+    <header class="page-head" style="margin-top:20px;">
+        <div>
+            <h1>🖥️ Bienvenue, {{ user.username }}</h1>
+            <p>Choisis un serveur à administrer avec TicketMP</p>
+        </div>
+        <a href="/logout" class="btn secondary sm">🚪 Déconnexion</a>
+    </header>
 
-<!-- SIDEBAR -->
+    <div class="cards" style="margin-top:30px;">
 
-<aside class="sidebar">
+        {% for guild in guilds %}
+        <div class="card">
+            <div class="stat-icon">🏠</div>
+            <h3 style="margin:14px 0 4px;font-size:17px;">{{ guild.name }}</h3>
+            <span class="id-tag" style="font-size:12px;">ID : <code>{{ guild.id }}</code></span>
 
+            <a href="/dashboard/{{ guild.id }}" class="btn block" style="margin-top:20px;">
+                ⚙️ Configurer
+            </a>
+        </div>
+        {% else %}
+        <div class="empty" style="grid-column:1/-1;">
+            📭 Aucun serveur administrable trouvé sur ton compte Discord.
+        </div>
+        {% endfor %}
 
-<div>
-
-
-<h2 class="logo">
-🎫 TicketMP
-</h2>
-
-
-<nav>
-
-
-<a href="/">
-📊 Dashboard
-</a>
-
-
-<a class="active" href="/servers">
-🏠 Serveurs
-</a>
-
-
-<a href="/tickets">
-🎫 Tickets
-</a>
-
-
-<a href="/panels">
-🧩 Panels
-</a>
-
-
-</nav>
-
+    </div>
 
 </div>
-
-
-
-<div class="user-box">
-
-
-{% if user.avatar %}
-
-<img
-class="avatar"
-src="https://cdn.discordapp.com/avatars/{{user.id}}/{{user.avatar}}.png?size=128"
->
-
-
-{% else %}
-
-<div class="avatar default-avatar">
-👤
-</div>
-
-{% endif %}
-
-
-
-<h3>
-{{user.username}}
-</h3>
-
-
-<p>
-🟢 Discord connecté
-</p>
-
-
-
-<a href="/logout">
-🚪 Déconnexion
-</a>
-
-
-</div>
-
-
-</aside>
-
-
-
-
-
-
-<!-- CONTENT -->
-
-
-<main class="main">
-
-
-
-<header class="topbar">
-
-
-<div>
-
-<h1>
-👋 Bonjour {{user.username}}
-</h1>
-
-
-<p>
-Gère tes serveurs Discord et configure TicketMP.
-</p>
-
-
-</div>
-
-
-
-</header>
-
-
-
-
-
-
-
-<!-- PROFIL -->
-
-
-<section class="profile-section">
-
-
-<div class="profile-card">
-
-
-
-<div class="profile-left">
-
-
-
-{% if user.avatar %}
-
-
-<img
-class="profile-avatar"
-src="https://cdn.discordapp.com/avatars/{{user.id}}/{{user.avatar}}.png?size=256"
->
-
-
-{% else %}
-
-
-<div class="profile-avatar default-avatar">
-👤
-</div>
-
-
-{% endif %}
-
-
-
-<div>
-
-
-<h2>
-{{user.username}}
-</h2>
-
-
-<p>
-ID Discord :
-<span class="code">
-{{user.id}}
-</span>
-</p>
-
-
-</div>
-
-
-</div>
-
-
-
-
-<div class="badge online">
-
-🟢 Connecté
-
-</div>
-
-
-
-</div>
-
-
-</section>
-
-
-
-
-
-
-
-
-<!-- SERVEURS -->
-
-
-<section>
-
-
-
-<div class="section-header">
-
-
-<div>
-
-<h2>
-🏠 Mes serveurs
-</h2>
-
-
-<p class="muted">
-
-{{ guilds|length if guilds else 0 }}
-serveur(s) disponible(s)
-
-</p>
-
-
-</div>
-
-
-
-</div>
-
-
-
-
-
-
-
-<div class="servers-grid">
-
-
-
-{% if guilds %}
-
-
-
-{% for guild in guilds %}
-
-
-
-<div class="server-card">
-
-
-
-
-
-<div class="server-header">
-
-
-
-{% if guild.icon %}
-
-
-<img
-class="server-icon"
-src="https://cdn.discordapp.com/icons/{{guild.id}}/{{guild.icon}}.png?size=256"
->
-
-
-{% else %}
-
-
-<div class="server-icon default-server">
-🏠
-</div>
-
-
-{% endif %}
-
-
-
-<div>
-
-
-<h3>
-{{guild.name}}
-</h3>
-
-
-<span class="owner">
-
-👑 Propriétaire
-
-</span>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-<div class="server-info">
-
-
-<p>
-🆔
-{{guild.id}}
-</p>
-
-
-
-{% if guild.permissions %}
-
-<p>
-🔐 Permissions :
-{{guild.permissions}}
-</p>
-
-{% endif %}
-
-
-
-</div>
-
-
-
-
-
-
-
-
-<a
-class="manage-btn"
-href="/server/{{guild.id}}"
->
-
-
-⚙️ Configurer le serveur
-
-
-</a>
-
-
-
-
-
-</div>
-
-
-
-
-{% endfor %}
-
-
-
-
-{% else %}
-
-
-
-
-<div class="empty-card">
-
-
-<div>
-❌
-</div>
-
-
-<h3>
-Aucun serveur trouvé
-</h3>
-
-
-<p>
-Tu dois être propriétaire d'un serveur Discord.
-</p>
-
-
-</div>
-
-
-
-
-{% endif %}
-
-
-
-
-</div>
-
-
-</section>
-
-
-
-
-
-</main>
-
 
 </body>
-
 </html>

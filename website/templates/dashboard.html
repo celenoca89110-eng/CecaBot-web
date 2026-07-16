@@ -1,207 +1,223 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TicketMP Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — TicketMP</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
 
-<div class="sidebar">
+<div class="user-box">
+    <div class="avatar-fallback">👤</div>
+    <span class="uname">{{ user.username }}</span>
 
-    <div>
-        <h2 class="logo">
-            🎫 TicketMP
-        </h2>
-
-        <nav>
-
-            <a class="active" href="/">
-                📊 Dashboard
-            </a>
-
-            <a href="/servers">
-                🏠 Mes serveurs
-            </a>
-
-            <a href="/tickets">
-                🎫 Tickets
-            </a>
-
-            <a href="/panels">
-                🧩 Panels
-            </a>
-
-        </nav>
-    </div>
-
-    {% if user %}
-    <div class="user-box">
-
-        {% if user.avatar %}
-        <img
-            class="avatar"
-            src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png"
-        >
-        {% endif %}
-
-        <div class="user-info">
-            <strong>{{ user.username }}</strong>
-            <span>Connecté</span>
-        </div>
-
-        <a class="logout-btn" href="/logout">
-            🚪
-        </a>
-
-    </div>
+    {% if user.role == "FOUNDER" %}
+        <span class="badge founder">👑 Founder</span>
+    {% elif user.role == "ADMIN" %}
+        <span class="badge admin">🛡 Admin</span>
+    {% else %}
+        <span class="badge user">User</span>
     {% endif %}
-
 </div>
 
+<div class="sidebar">
+    <h2><span class="dot"></span> TicketMP</h2>
+
+    <nav>
+        <a href="/" class="nav-link active"><span class="ico">📊</span> Dashboard</a>
+        <a href="/tickets" class="nav-link"><span class="ico">🎫</span> Tickets</a>
+        <a href="/panels" class="nav-link"><span class="ico">🧩</span> Panels</a>
+        <a href="/servers" class="nav-link"><span class="ico">🖥️</span> Serveurs</a>
+        <a href="/logout" class="nav-link"><span class="ico">🚪</span> Déconnexion</a>
+    </nav>
+
+    <div class="sidebar-footer">
+        Connecté en tant que<br>
+        <strong>{{ user.username }}</strong>
+    </div>
+</div>
 
 <div class="main">
 
-    <div class="topbar">
-
+    <header class="page-head">
         <div>
-            <h1>Bienvenue {{ user.username }}</h1>
-            <p>
-                Gérez vos tickets et vos serveurs Discord.
-            </p>
+            <h1>📊 Dashboard TicketMP</h1>
+            <p>Vue générale du système de tickets Discord</p>
         </div>
+    </header>
 
-    </div>
-
-
+    <!-- STATISTIQUES -->
     <div class="cards">
 
-        <div class="card stat-card">
-            <div>
-                <p>Tickets ouverts</p>
-                <h2>{{ stats.open }}</h2>
-            </div>
-            <span>🟢</span>
+        <div class="card">
+            <div class="stat-icon">🟢</div>
+            <span>Tickets ouverts</span>
+            <strong class="stat-value">{{ stats.open if stats and stats.open is defined else 0 }}</strong>
         </div>
 
-        <div class="card stat-card">
-            <div>
-                <p>Tickets fermés</p>
-                <h2>{{ stats.closed }}</h2>
-            </div>
-            <span>🔴</span>
+        <div class="card">
+            <div class="stat-icon">🔴</div>
+            <span>Tickets fermés</span>
+            <strong class="stat-value">{{ stats.closed if stats and stats.closed is defined else 0 }}</strong>
         </div>
 
-        <div class="card stat-card">
-            <div>
-                <p>Panels actifs</p>
-                <h2>{{ stats.panels }}</h2>
-            </div>
-            <span>🧩</span>
+        <div class="card">
+            <div class="stat-icon">🧩</div>
+            <span>Panels actifs</span>
+            <strong class="stat-value">{{ stats.panels if stats and stats.panels is defined else 0 }}</strong>
         </div>
 
     </div>
 
+    <!-- MODULES -->
+    <section>
+        <h2 style="font-size:19px;font-weight:700;margin:10px 0 4px;">⚙️ Modules</h2>
+        <p style="color:var(--muted);margin:0 0 6px;font-size:14px;">Gérez chaque fonctionnalité de votre bot depuis ces modules.</p>
 
-    <div class="dashboard-grid">
+        <div class="feature-grid">
 
-        <section class="panel-box">
-
-            <div class="section-header">
-                <h2>🎫 Tickets récents</h2>
+            <div class="feature-card">
+                <div class="f-icon">🎫</div>
+                <h3>Tickets</h3>
+                <p class="desc">Consultez et gérez l'ensemble des tickets ouverts et fermés sur vos serveurs.</p>
+                <div class="f-footer">
+                    <span class="status-pill live"><span class="lp-dot"></span> Actif</span>
+                    <a href="/tickets" class="btn sm">Configurer</a>
+                </div>
             </div>
 
-            {% if tickets %}
-
-                {% for uid, ticket in tickets.items() %}
-
-                <div class="ticket-card">
-
-                    <div class="ticket-top">
-
-                        <div>
-                            <h3>{{ uid }}</h3>
-                            <span>
-                                Ticket utilisateur
-                            </span>
-                        </div>
-
-                        <span class="badge">
-                            {{ ticket.category or "Support" }}
-                        </span>
-
-                    </div>
-
-                    <div class="ticket-info">
-
-                        <p>
-                            🏠 Serveur :
-                            {{ ticket.guild_id or "—" }}
-                        </p>
-
-                        <p>
-                            💬 Salon :
-                            {{ ticket.channel_id or "—" }}
-                        </p>
-
-                        <p>
-                            ⚙️ Via :
-                            {{ ticket.via or "—" }}
-                        </p>
-
-                    </div>
-
+            <div class="feature-card">
+                <div class="f-icon">📋</div>
+                <h3>Panel Ticket</h3>
+                <p class="desc">Créez et personnalisez les panels que vos membres utilisent pour ouvrir un ticket.</p>
+                <div class="f-footer">
+                    <span class="status-pill live"><span class="lp-dot"></span> Actif</span>
+                    <a href="/panels" class="btn sm">Configurer</a>
                 </div>
-
-                {% endfor %}
-
-            {% else %}
-
-                <div class="empty-box">
-                    🎫 Aucun ticket trouvé.
-                </div>
-
-            {% endif %}
-
-        </section>
-
-
-
-        <section class="panel-box">
-
-            <div class="section-header">
-                <h2>🧩 Informations</h2>
             </div>
 
-            <div class="info-card">
-
-                <div class="info-item">
-                    <span>Panels chargés</span>
-                    <strong>{{ stats.panels }}</strong>
+            <div class="feature-card">
+                <div class="f-icon">⚙️</div>
+                <h3>Configuration</h3>
+                <p class="desc">Réglages généraux du bot : catégories, rôles, salons et permissions.</p>
+                <div class="f-footer">
+                    <span class="status-pill soon"><span class="lp-dot"></span> Bientôt</span>
+                    <a href="#" class="btn sm secondary">Configurer</a>
                 </div>
-
-                <div class="info-item">
-                    <span>Utilisateur connecté</span>
-                    <strong>{{ user.username }}</strong>
-                </div>
-
-                <div class="info-item">
-                    <span>Statut Dashboard</span>
-                    <strong class="online">
-                        🟢 En ligne
-                    </strong>
-                </div>
-
             </div>
 
-        </section>
+            <div class="feature-card">
+                <div class="f-icon">🎨</div>
+                <h3>Personnalisation</h3>
+                <p class="desc">Couleurs, messages et emojis : adaptez l'apparence du bot à votre serveur.</p>
+                <div class="f-footer">
+                    <span class="status-pill soon"><span class="lp-dot"></span> Bientôt</span>
+                    <a href="#" class="btn sm secondary">Configurer</a>
+                </div>
+            </div>
 
-    </div>
+            <div class="feature-card">
+                <div class="f-icon">🛡️</div>
+                <h3>Sécurité</h3>
+                <p class="desc">Anti-spam, anti-raid et protections avancées pour votre communauté.</p>
+                <div class="f-footer">
+                    <span class="status-pill soon"><span class="lp-dot"></span> Bientôt</span>
+                    <a href="#" class="btn sm secondary">Configurer</a>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="f-icon">🤖</div>
+                <h3>AutoMod</h3>
+                <p class="desc">Modération automatique des messages, liens et mots interdits.</p>
+                <div class="f-footer">
+                    <span class="status-pill soon"><span class="lp-dot"></span> Bientôt</span>
+                    <a href="#" class="btn sm secondary">Configurer</a>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="f-icon">📢</div>
+                <h3>Logs</h3>
+                <p class="desc">Historique des actions : tickets, modération et évènements du serveur.</p>
+                <div class="f-footer">
+                    <span class="status-pill soon"><span class="lp-dot"></span> Bientôt</span>
+                    <a href="#" class="btn sm secondary">Configurer</a>
+                </div>
+            </div>
+
+            <div class="feature-card">
+                <div class="f-icon">🔔</div>
+                <h3>Notifications</h3>
+                <p class="desc">Alertes en temps réel sur Discord pour chaque évènement important.</p>
+                <div class="f-footer">
+                    <span class="status-pill soon"><span class="lp-dot"></span> Bientôt</span>
+                    <a href="#" class="btn sm secondary">Configurer</a>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- TICKETS -->
+    <section class="box">
+        <h2>🎫 Tickets enregistrés</h2>
+
+        {% if tickets %}
+        <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Serveur</th>
+                    <th>Salon</th>
+                    <th>Catégorie</th>
+                    <th>Création</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for uid, ticket in tickets.items() %}
+            <tr>
+                <td><strong>{{ uid }}</strong></td>
+                <td><code>{{ ticket.guild_id or "—" }}</code></td>
+                <td><code>{{ ticket.channel_id or "—" }}</code></td>
+                <td>{{ ticket.category or "Non définie" }}</td>
+                <td>{{ ticket.via or "Dashboard" }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+            <div class="empty">
+                📭 Aucun ticket trouvé.<br>
+                Le fichier <code>tickets.json</code> est vide.
+            </div>
+        {% endif %}
+    </section>
+
+    <!-- PANELS -->
+    <section class="box">
+        <h2>🧩 Panels Discord</h2>
+
+        {% if panels %}
+            <p style="color:var(--muted);">
+                ✅ <strong style="color:var(--text);">{{ stats.panels }}</strong> panel(s) détecté(s).
+            </p>
+        {% else %}
+            <div class="empty">
+                Aucun panel configuré.<br>
+                Crée un panel depuis Discord avec TicketMP.
+            </div>
+        {% endif %}
+    </section>
 
 </div>
 

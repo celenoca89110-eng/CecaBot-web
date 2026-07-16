@@ -1,165 +1,189 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ guild.name }} — TicketMP Dashboard</title>
 
-<title>Panel Ticket - TicketMP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="/static/style.css">
-
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 
 <body>
 
+<div class="sidebar">
+    <h2><span class="dot"></span> TicketMP</h2>
 
-<div class="container">
+    <nav>
+        <a href="/server/{{ guild.id }}" class="nav-link active"><span class="ico">🏠</span> Vue d'ensemble</a>
+        <a href="/server/{{ guild.id }}/tickets" class="nav-link"><span class="ico">🎫</span> Tickets</a>
+        <a href="/server/{{ guild.id }}/panel" class="nav-link"><span class="ico">📋</span> Panel Ticket</a>
+        <a href="/server/{{ guild.id }}/settings" class="nav-link"><span class="ico">⚙️</span> Paramètres</a>
+        <a href="/servers" class="nav-link"><span class="ico">↩️</span> Autres serveurs</a>
+    </nav>
 
-
-<div class="card">
-
-
-<div class="server-header">
-
-
-<div>
-
-<h1>
-📋 Panel Ticket
-</h1>
-
-
-<p>
-Création et personnalisation du panneau ticket Discord.
-</p>
-
-
+    <div class="sidebar-footer">
+        Serveur actif<br>
+        <strong>{{ guild.name }}</strong>
+    </div>
 </div>
 
+<div class="main">
+
+    <!-- BANNIÈRE SERVEUR -->
+    <div class="server-banner">
+
+        {% if guild.icon %}
+        <img class="server-icon" src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png" alt="">
+        {% else %}
+        <div class="server-icon default-icon">💬</div>
+        {% endif %}
+
+        <div class="server-info">
+            <h1>{{ guild.name }}</h1>
+            <p>⚙️ Centre de configuration TicketMP</p>
+
+            <div class="server-status">
+                <span class="badge online">🟢 Bot connecté</span>
+
+                {% if guild.owner %}
+                <span class="badge owner">👑 Propriétaire</span>
+                {% elif guild.administrator %}
+                <span class="badge admin">🛡️ Administrateur</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <header class="page-head">
+        <div>
+            <h1>🤖 Modules TicketMP</h1>
+            <p>Configure chaque partie du bot depuis ce panneau.</p>
+        </div>
+    </header>
+
+    <!-- TICKETS -->
+    <div class="config-category">
+        <h3>🎫 Système de tickets</h3>
+
+        <div class="config-grid">
+
+            <a href="/server/{{ guild.id }}/tickets" class="config-card">
+                <div class="icon">🎫</div>
+                <h4>Gestion des tickets</h4>
+                <p>Création, fermeture, catégories et permissions.</p>
+                <span class="config-button">Configurer →</span>
+            </a>
+
+            <a href="/server/{{ guild.id }}/panel" class="config-card">
+                <div class="icon">📋</div>
+                <h4>Panel Ticket</h4>
+                <p>Créer les boutons et menus de ticket.</p>
+                <span class="config-button">Configurer →</span>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- BOT -->
+    <div class="config-category">
+        <h3>🤖 Configuration du bot</h3>
+
+        <div class="config-grid">
+
+            <a href="/server/{{ guild.id }}/settings" class="config-card">
+                <div class="icon">⚙️</div>
+                <h4>Paramètres généraux</h4>
+                <p>Langue, comportement et options principales.</p>
+                <span class="config-button">Configurer →</span>
+            </a>
+
+            <a href="#" class="config-card">
+                <div class="icon">🎨</div>
+                <h4>Personnalisation</h4>
+                <p>Couleurs, messages et apparence.</p>
+                <span class="config-button">Configurer →</span>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- SECURITE -->
+    <div class="config-category">
+        <h3>🛡️ Sécurité &amp; Modération</h3>
+
+        <div class="config-grid">
+
+            <a href="#" class="config-card">
+                <div class="icon">🚨</div>
+                <h4>Anti Raid</h4>
+                <p>Protection contre les attaques serveur.</p>
+                <span class="config-button">Configurer →</span>
+            </a>
+
+            <a href="#" class="config-card">
+                <div class="icon">🤖</div>
+                <h4>AutoMod</h4>
+                <p>Filtres automatiques et modération.</p>
+                <span class="config-button">Configurer →</span>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="config-category">
+        <h3>📢 Logs &amp; Notifications</h3>
+
+        <div class="config-grid">
+
+            <a href="#" class="config-card">
+                <div class="icon">📢</div>
+                <h4>Logs Discord</h4>
+                <p>Actions staff, tickets et événements.</p>
+                <span class="config-button">Configurer →</span>
+            </a>
+
+            <a href="#" class="config-card">
+                <div class="icon">🔔</div>
+                <h4>Notifications</h4>
+                <p>Messages automatiques du bot.</p>
+                <span class="config-button">Configurer →</span>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- INFOS SERVEUR -->
+    <section class="box">
+        <h2>📌 Informations serveur</h2>
+
+        <div class="info-box">
+
+            <div>
+                🆔 ID
+                <strong>{{ guild.id }}</strong>
+            </div>
+
+            <div>
+                👑 Propriétaire
+                <strong>{% if guild.owner %}Oui{% else %}Non{% endif %}</strong>
+            </div>
+
+            <div>
+                🛡️ Permissions
+                <strong>{% if guild.administrator %}Administrateur{% else %}Gestion serveur{% endif %}</strong>
+            </div>
+
+        </div>
+    </section>
+
+    <a href="/servers" class="btn secondary" style="margin-top:6px;">⬅️ Retour aux serveurs</a>
 
 </div>
-
-
-
-<hr>
-
-
-
-
-<h2>
-🎨 Personnalisation du panel
-</h2>
-
-
-
-
-<div class="config-grid">
-
-
-
-<div class="config-card">
-
-<h3>
-📝 Titre du panel
-</h3>
-
-<p>
-Modifier le titre de l'embed ticket.
-</p>
-
-<input
-type="text"
-placeholder="Ouvrir un ticket"
->
-
-
-</div>
-
-
-
-
-<div class="config-card">
-
-<h3>
-💬 Description
-</h3>
-
-<p>
-Texte affiché dans le panel.
-</p>
-
-<textarea
-placeholder="Cliquez sur le bouton pour ouvrir un ticket">
-</textarea>
-
-
-</div>
-
-
-
-
-<div class="config-card">
-
-<h3>
-🎫 Bouton ticket
-</h3>
-
-<p>
-Changer le nom et emoji du bouton.
-</p>
-
-<button>
-💬 Créer un ticket
-</button>
-
-
-</div>
-
-
-
-
-<div class="config-card">
-
-<h3>
-📍 Salon du panel
-</h3>
-
-<p>
-Choisir où envoyer le panel Discord.
-</p>
-
-</div>
-
-
-
-
-</div>
-
-
-
-<hr>
-
-
-
-<a href="/server/{{ guild_id }}"
-class="button secondary">
-
-⬅️ Retour serveur
-
-</a>
-
-
-
-</div>
-
-
-</div>
-
 
 </body>
-
 </html>

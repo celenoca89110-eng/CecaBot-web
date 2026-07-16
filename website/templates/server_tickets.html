@@ -1,132 +1,110 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tickets — TicketMP</title>
 
-<title>Tickets - TicketMP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="/static/style.css">
-
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 
 <body>
 
+<div class="sidebar">
+    <h2><span class="dot"></span> TicketMP</h2>
 
-<div class="container">
+    <nav>
+        <a href="/server/{{ guild_id }}" class="nav-link"><span class="ico">🏠</span> Vue d'ensemble</a>
+        <a href="/server/{{ guild_id }}/tickets" class="nav-link active"><span class="ico">🎫</span> Tickets</a>
+        <a href="/server/{{ guild_id }}/panel" class="nav-link"><span class="ico">📋</span> Panel Ticket</a>
+        <a href="/server/{{ guild_id }}/settings" class="nav-link"><span class="ico">⚙️</span> Paramètres</a>
+        <a href="/servers" class="nav-link"><span class="ico">↩️</span> Autres serveurs</a>
+    </nav>
 
-
-<div class="card">
-
-
-<h1>
-🎫 Gestion des tickets
-</h1>
-
-
-<p style="color:#9aa4c0">
-
-Configuration du système de tickets du serveur.
-
-</p>
-
-
-
-<hr>
-
-
-
-<div class="config-grid">
-
-
-
-<div class="config-card">
-
-<h3>
-📂 Catégorie ticket
-</h3>
-
-<p>
-Choisir où les tickets seront créés.
-</p>
-
+    <div class="sidebar-footer">Module <strong>Tickets</strong></div>
 </div>
 
+<div class="main">
 
+    <header class="page-head">
+        <div>
+            <h1>🎫 Gestion des tickets</h1>
+            <p>Configuration du système de tickets du serveur.</p>
+        </div>
+    </header>
 
+    <section class="box">
 
-<div class="config-card">
+        <div class="config-grid">
 
-<h3>
-📝 Message ouverture
-</h3>
+            <div class="config-card">
+                <h3>📂 Catégorie ticket</h3>
+                <p>Choisir où les tickets seront créés.</p>
+                <div class="field" style="margin:6px 0 0;">
+                    <select>
+                        <option>Sélectionner une catégorie…</option>
+                    </select>
+                </div>
+            </div>
 
-<p>
-Modifier le message envoyé aux utilisateurs.
-</p>
+            <div class="config-card">
+                <h3>📝 Message d'ouverture</h3>
+                <p>Modifier le message envoyé aux utilisateurs.</p>
+                <div class="field" style="margin:6px 0 0;">
+                    <textarea rows="3" placeholder="Merci d'avoir ouvert un ticket, un membre du staff va vous répondre."></textarea>
+                </div>
+            </div>
+
+            <div class="config-card">
+                <h3>🔒 Fermeture de ticket</h3>
+                <p>Configurer les boutons fermer, supprimer et logs.</p>
+
+                <div class="switch-row" style="padding-top:6px;">
+                    <div>
+                        <div class="sw-label">Bouton fermer</div>
+                        <div class="sw-desc">Autorise le staff à clôturer le ticket</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="switch-row">
+                    <div>
+                        <div class="sw-label">Supprimer après fermeture</div>
+                        <div class="sw-desc">Supprime le salon automatiquement</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="config-card">
+                <h3>👥 Support</h3>
+                <p>Choisir les rôles staff pouvant gérer les tickets.</p>
+                <div class="field" style="margin:6px 0 0;">
+                    <select>
+                        <option>Sélectionner un rôle…</option>
+                    </select>
+                </div>
+            </div>
+
+        </div>
+
+        <button class="btn" style="margin-top:22px;">💾 Enregistrer les modifications</button>
+
+    </section>
+
+    <a href="/server/{{ guild_id }}" class="btn secondary">⬅️ Retour configuration serveur</a>
 
 </div>
-
-
-
-
-<div class="config-card">
-
-<h3>
-🔒 Fermeture ticket
-</h3>
-
-<p>
-Configurer les boutons fermer, supprimer et logs.
-</p>
-
-</div>
-
-
-
-
-<div class="config-card">
-
-<h3>
-👥 Support
-</h3>
-
-<p>
-Choisir les rôles staff pouvant gérer les tickets.
-</p>
-
-</div>
-
-
-
-
-</div>
-
-
-
-<br>
-
-
-
-<a href="/server/{{ guild_id }}"
-class="button secondary">
-
-⬅️ Retour configuration serveur
-
-</a>
-
-
-
-</div>
-
-
-</div>
-
 
 </body>
-
 </html>
